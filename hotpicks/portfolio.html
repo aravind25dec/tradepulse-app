@@ -1,0 +1,1672 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8"/>
+  <meta name="viewport" content="width=device-width, initial-scale=1.0"/>
+  <title>TradePulse — My Portfolio</title>
+  <style>
+    :root {
+      --bg:#0d1117; --bg2:#161b22; --bg3:#1c2333; --border:#30363d;
+      --text:#e6edf3; --text2:#8b949e;
+      --green:#3fb950; --green-dim:#1a3a24;
+      --red:#f85149;   --red-dim:#3a1a1a;
+      --yellow:#d29922; --yellow-dim:#3a2e10;
+      --blue:#58a6ff;  --orange:#f0883e; --purple:#bc8cff;
+      --font:'SF Mono','Fira Code','Cascadia Code',monospace;
+    }
+    *{box-sizing:border-box;margin:0;padding:0;}
+    body{background:var(--bg);color:var(--text);font-family:var(--font);font-size:13px;min-height:100vh;}
+
+    /* ── Header ── */
+    header{background:var(--bg2);border-bottom:1px solid var(--border);padding:14px 24px;
+      display:flex;align-items:center;justify-content:space-between;position:sticky;top:0;z-index:100;}
+    .logo{display:flex;align-items:center;gap:10px;}
+    .logo-text{font-size:16px;font-weight:700;}
+    .logo-sub{font-size:11px;color:var(--text2);margin-top:1px;}
+    .back-link{font-size:11px;color:var(--blue);text-decoration:none;padding:5px 12px;
+      border:1px solid var(--border);border-radius:6px;transition:all .15s;}
+    .back-link:hover{border-color:var(--blue);background:var(--bg3);}
+
+    main{padding:20px 24px;display:flex;flex-direction:column;gap:20px;max-width:1200px;}
+
+    /* ── Section ── */
+    .card{background:var(--bg2);border:1px solid var(--border);border-radius:10px;overflow:hidden;}
+    .card-hdr{padding:14px 20px;border-bottom:1px solid var(--border);
+      font-size:13px;font-weight:700;display:flex;align-items:center;gap:10px;}
+    .card-body{padding:20px;}
+
+    /* ── Tabs ── */
+    .tabs{display:flex;gap:0;border-bottom:1px solid var(--border);}
+    .tab{padding:10px 20px;font-size:12px;font-weight:600;color:var(--text2);
+      cursor:pointer;border-bottom:2px solid transparent;transition:all .15s;}
+    .tab:hover{color:var(--text);}
+    .tab.active{color:var(--blue);border-bottom-color:var(--blue);}
+
+    /* ── Forms ── */
+    .form-row{display:flex;gap:10px;align-items:flex-end;flex-wrap:wrap;margin-bottom:16px;}
+    .form-group{display:flex;flex-direction:column;gap:5px;}
+    .form-label{font-size:10px;color:var(--text2);text-transform:uppercase;letter-spacing:.5px;}
+    .form-input{background:var(--bg3);border:1px solid var(--border);color:var(--text);
+      font-family:var(--font);font-size:13px;padding:8px 12px;border-radius:6px;
+      outline:none;transition:border-color .15s;}
+    .form-input:focus{border-color:var(--blue);}
+    .form-input.ticker-input{text-transform:uppercase;letter-spacing:1px;font-weight:700;width:100px;}
+    .form-input.wide{width:220px;}
+
+    .btn{padding:8px 16px;border-radius:6px;border:1px solid var(--border);
+      background:var(--bg2);color:var(--text);font-family:var(--font);
+      font-size:12px;cursor:pointer;transition:all .15s;}
+    .btn:hover{background:var(--bg3);border-color:var(--blue);color:var(--blue);}
+    .btn:disabled{opacity:.4;cursor:not-allowed;}
+    .btn-primary{background:#1f6feb;border-color:#1f6feb;color:#fff;}
+    .btn-primary:hover{background:#388bfd;border-color:#388bfd;color:#fff;}
+    .btn-danger{background:var(--red-dim);border-color:var(--red);color:var(--red);}
+    .btn-sm{padding:5px 10px;font-size:11px;}
+
+    .security-note{font-size:10px;color:var(--text2);background:var(--bg3);
+      border:1px solid var(--border);border-radius:6px;padding:8px 12px;margin-bottom:14px;
+      line-height:1.5;}
+    .security-note strong{color:var(--yellow);}
+
+    /* ── Positions manual table ── */
+    .pos-entry-table{width:100%;border-collapse:collapse;margin-bottom:14px;}
+    .pos-entry-table th{font-size:10px;color:var(--text2);text-transform:uppercase;
+      letter-spacing:.5px;padding:6px 10px;border-bottom:1px solid var(--border);text-align:left;}
+    .pos-entry-table td{padding:6px 8px;border-bottom:1px solid var(--border);vertical-align:middle;}
+    .pos-entry-table tr:last-child td{border-bottom:none;}
+    .pos-entry-table .del-btn{color:var(--red);cursor:pointer;font-size:14px;background:none;
+      border:none;padding:2px 6px;}
+
+    /* ── Portfolio summary bar ── */
+    .summary-bar{background:var(--bg3);border:1px solid var(--border);border-radius:10px;
+      padding:14px 20px;display:grid;grid-template-columns:repeat(auto-fit,minmax(140px,1fr));gap:14px;}
+    .sum-item{}
+    .sum-label{font-size:9px;color:var(--text2);text-transform:uppercase;letter-spacing:.5px;margin-bottom:3px;}
+    .sum-val{font-size:20px;font-weight:800;}
+    .sum-pos{color:var(--green);}
+    .sum-neg{color:var(--red);}
+    .sum-warn{color:var(--yellow);}
+    .sum-neu{color:var(--text);}
+
+    /* ── Market regime banner ── */
+    #market-banner{display:none;padding:10px 24px;font-size:12px;font-weight:700;
+      text-align:center;border-radius:8px;margin-bottom:0;}
+    #market-banner.bear{background:var(--red-dim);border:1px solid var(--red);color:var(--red);}
+    #market-banner.caution{background:var(--yellow-dim);border:1px solid var(--yellow);color:var(--yellow);}
+
+    /* ── Portfolio results table ── */
+    .ptable{width:100%;border-collapse:collapse;}
+    .ptable th{font-size:10px;color:var(--text2);text-transform:uppercase;letter-spacing:.5px;
+      padding:9px 12px;border-bottom:2px solid var(--border);text-align:left;white-space:nowrap;}
+    .ptable td{padding:10px 12px;border-bottom:1px solid var(--border);vertical-align:middle;}
+    .ptable tr:last-child td{border-bottom:none;}
+    .ptable tbody tr{cursor:pointer;transition:background .1s;}
+    .ptable tbody tr:hover td{background:var(--bg3);}
+
+    .pt-ticker{font-size:15px;font-weight:800;letter-spacing:1px;}
+    .pt-price {font-size:13px;font-weight:700;}
+    .pt-qty   {color:var(--text2);font-size:12px;}
+    .pnl-pos  {color:var(--green);font-weight:700;}
+    .pnl-neg  {color:var(--red);  font-weight:700;}
+    .pnl-neu  {color:var(--text2);}
+
+    .grade-pill{padding:3px 8px;border-radius:20px;font-size:9px;font-weight:800;white-space:nowrap;}
+    .pill-STRONG-BUY{background:var(--green-dim);color:var(--green);border:1px solid var(--green);}
+    .pill-BUY       {background:#1a2e1a;color:#6ee77a;border:1px solid #2a5a2a;}
+    .pill-WATCH     {background:var(--yellow-dim);color:var(--yellow);border:1px solid var(--yellow);}
+    .pill-NEUTRAL   {background:var(--bg3);color:var(--text2);border:1px solid var(--border);}
+    .pill-SKIP      {background:var(--red-dim);color:var(--red);border:1px solid var(--red);}
+
+    .rec-pill{padding:4px 10px;border-radius:20px;font-size:10px;font-weight:700;white-space:nowrap;}
+    .rec-buy    {background:var(--green-dim);color:var(--green);border:1px solid var(--green);}
+    .rec-sell   {background:var(--red-dim);  color:var(--red);  border:1px solid var(--red);}
+    .rec-warn   {background:var(--yellow-dim);color:var(--yellow);border:1px solid var(--yellow);}
+    .rec-neutral{background:var(--bg3);      color:var(--text2);border:1px solid var(--border);}
+
+    .danger-count{font-size:10px;color:var(--text2);background:var(--bg);
+      border:1px solid var(--border);padding:1px 6px;border-radius:4px;}
+    .danger-count.has-danger{color:var(--red);border-color:var(--red);background:var(--red-dim);}
+
+    .detail-link{font-size:10px;color:var(--blue);cursor:pointer;}
+    .detail-link:hover{text-decoration:underline;}
+
+    /* ── Loading / empty ── */
+    .loading-state{display:flex;flex-direction:column;align-items:center;
+      justify-content:center;padding:50px 20px;gap:12px;color:var(--text2);}
+    .spinner{width:32px;height:32px;border:3px solid var(--border);
+      border-top-color:var(--blue);border-radius:50%;animation:spin .8s linear infinite;}
+    @keyframes spin{to{transform:rotate(360deg);}}
+
+    .alert{padding:10px 14px;border-radius:6px;font-size:11px;margin-bottom:12px;}
+    .alert-success{background:var(--green-dim);border:1px solid var(--green);color:var(--green);}
+    .alert-error  {background:var(--red-dim);  border:1px solid var(--red);  color:var(--red);}
+    .alert-info   {background:var(--bg3);      border:1px solid var(--border);color:var(--text2);}
+
+    /* ── Accounts bar ── */
+    .acct-bar{display:flex;gap:10px;flex-wrap:wrap;margin-top:12px;}
+    .acct-card{background:var(--bg3);border:1px solid var(--border);border-radius:8px;
+      padding:10px 14px;flex:1;min-width:140px;cursor:pointer;transition:border-color .15s;}
+    .acct-card:hover,.acct-card.active{border-color:var(--blue);}
+    .acct-card.active{background:#0d2045;}
+    .acct-card-label{font-size:9px;color:var(--text2);text-transform:uppercase;letter-spacing:.5px;}
+    .acct-card-bp{font-size:16px;font-weight:800;color:var(--green);margin-top:3px;}
+    .acct-card-sub{font-size:9px;color:var(--text2);margin-top:1px;}
+
+    /* ── Account filter strip ── */
+    .acct-filter{display:flex;gap:6px;flex-wrap:wrap;padding:10px 16px;border-bottom:1px solid var(--border);}
+    .acct-ftab{padding:4px 12px;border-radius:20px;font-size:11px;cursor:pointer;
+      background:var(--bg3);border:1px solid var(--border);color:var(--text2);transition:all .15s;}
+    .acct-ftab:hover,.acct-ftab.active{border-color:var(--blue);color:var(--blue);background:#0d2045;}
+
+    /* ── Order buttons ── */
+    .btn-buy {background:var(--green-dim);border:1px solid var(--green);color:var(--green);
+      padding:4px 10px;border-radius:5px;font-size:10px;font-weight:700;cursor:pointer;transition:all .15s;}
+    .btn-buy:hover{background:var(--green);color:#000;}
+    .btn-sell{background:var(--red-dim);  border:1px solid var(--red);  color:var(--red);
+      padding:4px 10px;border-radius:5px;font-size:10px;font-weight:700;cursor:pointer;transition:all .15s;}
+    .btn-sell:hover{background:var(--red);color:#fff;}
+
+    /* ── Order Modal ── */
+    #order-overlay{display:none;position:fixed;inset:0;z-index:9100;
+      background:rgba(0,0,0,.85);backdrop-filter:blur(6px);
+      align-items:flex-start;justify-content:center;padding:24px 16px;overflow-y:auto;}
+    .order-card{background:var(--bg2);border:1px solid var(--border);border-radius:14px;
+      width:100%;max-width:460px;box-shadow:0 24px 80px rgba(0,0,0,.8);animation:slideUp .2s ease;
+      margin:0 auto;}
+    .order-hdr{padding:16px 20px;border-bottom:1px solid var(--border);
+      display:flex;align-items:flex-start;justify-content:space-between;gap:10px;}
+    .order-body{padding:18px 20px;display:flex;flex-direction:column;gap:0;}
+    .order-side-toggle{display:flex;border-radius:8px;overflow:hidden;border:1px solid var(--border);width:100%;}
+    .order-side-btn{flex:1;padding:9px;font-size:13px;font-weight:800;cursor:pointer;text-align:center;
+      background:var(--bg3);color:var(--text2);border:none;font-family:var(--font);transition:all .15s;}
+    .order-side-btn.buy-active {background:var(--green);color:#000;}
+    .order-side-btn.sell-active{background:var(--red);  color:#fff;}
+    .order-amt-toggle{display:flex;gap:6px;margin-top:6px;}
+    .order-amt-btn{flex:1;padding:6px 10px;font-size:11px;font-weight:600;cursor:pointer;text-align:center;
+      background:var(--bg3);color:var(--text2);border:1px solid var(--border);border-radius:6px;
+      font-family:var(--font);transition:all .15s;}
+    .order-amt-btn.active{background:var(--blue);color:#000;border-color:var(--blue);font-weight:800;}
+    .order-type-toggle{display:flex;border-radius:6px;overflow:hidden;border:1px solid var(--border);}
+    .order-type-btn{flex:1;padding:6px;font-size:11px;cursor:pointer;text-align:center;
+      background:var(--bg3);color:var(--text2);border:none;font-family:var(--font);transition:all .15s;}
+    .order-type-btn.active{background:var(--blue);color:#000;font-weight:700;}
+    .order-row{margin-top:14px;}
+    .order-label{font-size:9px;color:var(--text2);text-transform:uppercase;letter-spacing:.5px;margin-bottom:5px;}
+    .order-input{width:100%;background:var(--bg3);border:1px solid var(--border);color:var(--text);
+      font-family:var(--font);font-size:15px;font-weight:700;padding:9px 12px;
+      border-radius:6px;outline:none;transition:border-color .15s;}
+    .order-input:focus{border-color:var(--blue);}
+    select.order-input{cursor:pointer;font-size:12px;font-weight:400;}
+    .order-pos-ctx{background:var(--bg3);border:1px solid var(--border);border-radius:8px;
+      padding:10px 14px;margin-top:14px;display:grid;grid-template-columns:repeat(3,1fr);gap:8px;}
+    .order-pos-ctx .pc-label{font-size:9px;color:var(--text2);text-transform:uppercase;letter-spacing:.5px;}
+    .order-pos-ctx .pc-val  {font-size:16px;font-weight:800;margin-top:2px;}
+    .order-est{margin-top:14px;background:var(--bg3);border:1px solid var(--border);
+      border-radius:8px;padding:10px 14px;display:flex;justify-content:space-between;align-items:center;gap:10px;}
+    .order-est-val{font-size:20px;font-weight:900;color:var(--text);white-space:nowrap;}
+    .order-confirm-btn{width:100%;margin-top:14px;padding:13px;border-radius:8px;border:none;
+      font-family:var(--font);font-size:14px;font-weight:800;cursor:pointer;transition:all .15s;letter-spacing:.5px;}
+    .order-confirm-btn.buy-mode {background:var(--green);color:#000;}
+    .order-confirm-btn.sell-mode{background:var(--red);  color:#fff;}
+    .order-confirm-btn:disabled {opacity:.4;cursor:not-allowed;}
+    .order-result{margin-top:12px;padding:10px 14px;border-radius:8px;font-size:11px;line-height:1.6;}
+    .order-result.ok  {background:var(--green-dim);border:1px solid var(--green);color:var(--green);}
+    .order-result.err {background:var(--red-dim);  border:1px solid var(--red);  color:var(--red);}
+    .ira-warn{font-size:10px;color:var(--yellow);background:var(--yellow-dim);border:1px solid var(--yellow);
+      border-radius:6px;padding:6px 10px;margin-top:10px;}
+    /* ── Quick Trade bar ── */
+    .qt-bar{background:var(--bg2);border:1px solid var(--border);border-radius:10px;
+      padding:14px 20px;display:flex;gap:14px;align-items:center;flex-wrap:wrap;}
+    .qt-label{font-size:11px;color:var(--text2);font-weight:700;white-space:nowrap;}
+    .qt-hint{font-size:10px;color:var(--text2);}
+    /* ── IRA notice ── */
+    .ira-notice{font-size:10px;background:var(--yellow-dim);border:1px solid var(--yellow);
+      color:var(--yellow);border-radius:6px;padding:8px 12px;margin-top:10px;line-height:1.5;}
+
+    /* ═══ MODAL (same as hotpicks) ═══════════════════════════════════════════ */
+    #modal-overlay{display:none;position:fixed;inset:0;z-index:9000;
+      background:rgba(0,0,0,.8);backdrop-filter:blur(4px);
+      align-items:flex-start;justify-content:center;padding:24px 16px;overflow-y:auto;}
+    .modal-card{background:var(--bg2);border:1px solid var(--border);border-radius:14px;
+      width:100%;max-width:780px;position:relative;box-shadow:0 24px 80px rgba(0,0,0,.7);
+      animation:slideUp .2s ease;}
+    @keyframes slideUp{from{opacity:0;transform:translateY(20px);}to{opacity:1;transform:translateY(0);}}
+    .modal-close-btn{position:absolute;top:14px;right:14px;background:var(--bg3);
+      border:1px solid var(--border);color:var(--text2);font-family:var(--font);
+      font-size:11px;padding:5px 12px;border-radius:6px;cursor:pointer;z-index:1;}
+    .modal-close-btn:hover{border-color:var(--red);color:var(--red);}
+    .modal-header{padding:22px 24px 18px;border-bottom:1px solid var(--border);
+      display:flex;align-items:flex-start;justify-content:space-between;gap:12px;}
+    .modal-ticker{font-size:36px;font-weight:900;letter-spacing:2px;line-height:1;}
+    .modal-price {font-size:22px;font-weight:700;margin-top:4px;}
+    .modal-chg   {font-size:13px;color:var(--text2);margin-top:3px;display:flex;gap:10px;}
+    .modal-header-right{display:flex;flex-direction:column;align-items:flex-end;gap:8px;}
+    .modal-score-big{font-size:28px;font-weight:900;}
+    .modal-section{padding:18px 24px;border-bottom:1px solid var(--border);}
+    .modal-section:last-child{border-bottom:none;}
+    .modal-section-hdr{font-size:11px;font-weight:700;color:var(--text2);text-transform:uppercase;
+      letter-spacing:1px;margin-bottom:12px;display:flex;align-items:center;gap:8px;}
+    .modal-section-hdr::after{content:'';flex:1;height:1px;background:var(--border);}
+    .modal-analysis-text{font-size:12px;color:var(--text);line-height:1.7;
+      background:var(--bg3);border:1px solid var(--border);padding:12px 16px;border-radius:8px;}
+    .modal-key-risk{margin-top:8px;font-size:11px;color:var(--red);
+      background:var(--red-dim);border:1px solid var(--red);padding:7px 12px;border-radius:6px;}
+    .modal-two-col{display:grid;grid-template-columns:1fr 1fr;gap:16px;}
+    .signal-list{display:flex;flex-direction:column;gap:6px;}
+    .signal-item{font-size:11px;padding:6px 10px;border-radius:6px;
+      display:flex;align-items:flex-start;gap:8px;background:var(--bg);
+      border:1px solid var(--border);line-height:1.4;}
+    .signal-item.bull{background:var(--green-dim);border-color:#2a5a2a;color:#a3e6b0;}
+    .signal-item.bear{background:var(--red-dim);  border-color:#4a2a2a;color:#f08080;}
+    .plan-grid{display:grid;grid-template-columns:1fr 1fr 1fr;gap:12px;margin-bottom:12px;}
+    .plan-level{text-align:center;background:var(--bg3);border:1px solid var(--border);border-radius:8px;padding:10px;}
+    .plan-level-label{font-size:9px;color:var(--text2);text-transform:uppercase;letter-spacing:1px;}
+    .plan-level-val{font-size:20px;font-weight:800;margin-top:4px;}
+    .plan-entry .plan-level-val{color:var(--blue);}
+    .plan-target .plan-level-val{color:var(--green);}
+    .plan-stop  .plan-level-val{color:var(--red);}
+    .rr-bar-wrap{background:var(--bg3);border:1px solid var(--border);border-radius:8px;padding:12px 16px;}
+    .rr-bar-track{height:8px;border-radius:4px;background:var(--bg);margin:8px 0;display:flex;}
+    .rr-bar-loss{background:var(--red);  border-radius:4px 0 0 4px;}
+    .rr-bar-gain{background:var(--green);border-radius:0 4px 4px 0;}
+    .chart-wrap{position:relative;}
+    #m-chart{display:block;width:100%;border-radius:8px;background:var(--bg3);}
+    .chart-legend{display:flex;gap:16px;padding:8px 0 0;font-size:10px;color:var(--text2);flex-wrap:wrap;}
+    .pattern-table{width:100%;border-collapse:collapse;font-size:11px;}
+    .pattern-table th{font-size:9px;text-transform:uppercase;letter-spacing:.5px;color:var(--text2);
+      padding:6px 10px;border-bottom:1px solid var(--border);text-align:left;}
+    .pattern-table td{padding:8px 10px;border-bottom:1px solid var(--border);}
+    .pattern-table tr:last-child td{border-bottom:none;}
+    .pattern-table tr:hover td{background:var(--bg3);}
+    .ret-pos{color:var(--green);font-weight:700;}
+    .ret-neg{color:var(--red);  font-weight:700;}
+    .win-rate-bar{margin-top:12px;background:var(--bg3);border:1px solid var(--border);
+      border-radius:8px;padding:10px 14px;display:flex;align-items:center;gap:12px;}
+    .win-rate-val{font-size:22px;font-weight:900;}
+    .win-rate-val.good{color:var(--green);}
+    .win-rate-val.bad {color:var(--red);}
+    .win-rate-val.meh {color:var(--yellow);}
+    .win-rate-bg{flex:1;height:6px;background:var(--bg);border-radius:3px;}
+    .win-rate-fill{height:6px;border-radius:3px;}
+    .signal-snap{display:grid;grid-template-columns:1fr 1fr;gap:8px;}
+    .snap-row{display:flex;align-items:center;justify-content:space-between;
+      padding:6px 10px;border-radius:6px;background:var(--bg3);border:1px solid var(--border);
+      font-size:11px;gap:8px;}
+    .snap-name{color:var(--text2);white-space:nowrap;}
+    .snap-val {font-weight:700;white-space:nowrap;}
+    .snap-status{font-size:9px;white-space:nowrap;padding:1px 5px;border-radius:3px;}
+    .snap-good{background:var(--green-dim);color:var(--green);}
+    .snap-bad {background:var(--red-dim);  color:var(--red);}
+    .snap-warn{background:var(--yellow-dim);color:var(--yellow);}
+    .snap-neu {background:var(--bg);color:var(--text2);border:1px solid var(--border);}
+    .modal-danger-alert{margin:0 24px 18px;padding:12px 16px;border-radius:8px;
+      font-size:12px;font-weight:700;display:flex;align-items:flex-start;gap:10px;line-height:1.5;}
+    .modal-danger-high  {background:var(--red-dim);  border:1px solid var(--red);  color:var(--red);}
+    .modal-danger-medium{background:var(--yellow-dim);border:1px solid var(--yellow);color:var(--yellow);}
+    /* Position context box in modal */
+    .position-context{background:var(--bg3);border:1px solid var(--border);border-radius:8px;
+      padding:12px 16px;display:grid;grid-template-columns:repeat(4,1fr);gap:12px;}
+    .pos-ctx-item .label{font-size:9px;color:var(--text2);text-transform:uppercase;letter-spacing:.5px;}
+    .pos-ctx-item .val  {font-size:16px;font-weight:800;margin-top:3px;}
+
+    @media(max-width:640px){
+      .modal-two-col,.plan-grid,.signal-snap,.summary-bar{grid-template-columns:1fr;}
+      .position-context{grid-template-columns:1fr 1fr;}
+    }
+  </style>
+</head>
+<body>
+
+<header>
+  <div class="logo">
+    <span style="font-size:22px">💼</span>
+    <div>
+      <div class="logo-text">TradePulse — My Portfolio</div>
+      <div class="logo-sub">Signal analysis on stocks you own · Position-aware recommendations</div>
+    </div>
+  </div>
+  <div style="display:flex;align-items:center;gap:10px">
+    <button class="btn" onclick="openGlossary()" title="What do these terms mean?">📖 Key</button>
+    <a href="/agent" style="padding:5px 12px;border-radius:6px;text-decoration:none;color:var(--purple);font-size:12px;font-weight:600;border:1px solid var(--purple);background:#1e1a2e">🤖 Agent</a>
+    <a href="/my-picks" style="padding:5px 12px;border-radius:6px;text-decoration:none;color:var(--green);font-size:12px;font-weight:600;border:1px solid var(--green);background:var(--green-dim)">My Picks</a>
+    <a href="/" class="back-link">← Hot Picks</a>
+  </div>
+</header>
+
+<main>
+
+  <!-- ── Market banner ── -->
+  <div id="market-banner"></div>
+
+  <!-- ── Connect section ── -->
+  <div class="card" id="connect-card">
+    <div class="tabs">
+      <div class="tab active" id="tab-rh"     onclick="switchTab('rh')">📱 Robinhood Login</div>
+      <div class="tab"        id="tab-manual" onclick="switchTab('manual')">✏ Enter Manually</div>
+    </div>
+
+    <!-- Robinhood tab -->
+    <div class="card-body" id="tab-body-rh">
+      <div class="security-note">
+        <strong>⚠ Security note:</strong> Your credentials are sent only to this local server running on your own machine and are held in-process memory only — nothing is written to disk. This uses the unofficial Robinhood API and is for <strong>personal local use only</strong>.
+      </div>
+      <div id="rh-logged-in" style="display:none">
+        <div class="alert alert-success" style="margin-bottom:10px">✓ Connected to Robinhood — <span id="rh-pos-count">—</span> positions across <span id="rh-acct-count">—</span> account(s)</div>
+        <!-- Accounts bar -->
+        <div class="acct-bar" id="accounts-bar"></div>
+        <div class="ira-notice" style="margin-top:10px">
+          ⚠ <strong>IRA accounts not showing?</strong> Robinhood's unofficial API only exposes brokerage accounts via the standard endpoint — Traditional IRA and Roth IRA accounts are not returned. Use the <strong>Manual Entry</strong> tab to add your IRA positions for analysis.
+        </div>
+        <div style="display:flex;gap:10px;align-items:center;margin-top:14px">
+          <button class="btn btn-primary" onclick="runPortfolioAnalysis()">📊 Analyze My Portfolio</button>
+          <button class="btn btn-danger btn-sm" onclick="doLogout()">Disconnect</button>
+        </div>
+      </div>
+      <div id="rh-login-form">
+        <div id="rh-alert" style="display:none"></div>
+        <div class="form-row">
+          <div class="form-group">
+            <div class="form-label">Email / Username</div>
+            <input class="form-input wide" id="rh-user" type="text" placeholder="your@email.com" autocomplete="username"/>
+          </div>
+          <div class="form-group">
+            <div class="form-label">Password</div>
+            <input class="form-input wide" id="rh-pass" type="password" placeholder="••••••••" autocomplete="current-password"/>
+          </div>
+          <div class="form-group" id="mfa-group" style="display:none">
+            <div class="form-label">MFA / SMS Code</div>
+            <input class="form-input" id="rh-mfa" type="text" placeholder="123456" maxlength="6" style="width:110px"/>
+          </div>
+          <div class="form-group" style="padding-bottom:1px">
+            <div class="form-label">&nbsp;</div>
+            <button class="btn btn-primary" id="rh-login-btn" onclick="doRobinhoodLogin()">Connect →</button>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <!-- Manual entry tab -->
+    <div class="card-body" id="tab-body-manual" style="display:none">
+      <div class="form-row" style="align-items:flex-end">
+        <div class="form-group">
+          <div class="form-label">Ticker</div>
+          <input class="form-input ticker-input" id="m-ticker" type="text" placeholder="NVDA" maxlength="10"
+                 onkeydown="if(event.key==='Enter')addManualPosition()"/>
+        </div>
+        <div class="form-group">
+          <div class="form-label">Shares</div>
+          <input class="form-input" id="m-qty" type="number" placeholder="10" min="0" step="0.001" style="width:90px"/>
+        </div>
+        <div class="form-group">
+          <div class="form-label">Avg Cost ($)</div>
+          <input class="form-input" id="m-cost" type="number" placeholder="420.00" min="0" step="0.01" style="width:110px"/>
+        </div>
+        <button class="btn" onclick="addManualPosition()" style="margin-bottom:1px">+ Add</button>
+      </div>
+      <div id="manual-positions-wrap" style="display:none">
+        <table class="pos-entry-table">
+          <thead><tr><th>Ticker</th><th>Shares</th><th>Avg Cost</th><th>Est. Value</th><th></th></tr></thead>
+          <tbody id="manual-pos-body"></tbody>
+        </table>
+        <button class="btn btn-primary" onclick="runPortfolioAnalysis()">📊 Analyze Portfolio</button>
+      </div>
+      <div id="manual-empty" style="color:var(--text2);font-size:11px;padding:4px 0">
+        Add tickers above to build your portfolio list.
+      </div>
+    </div>
+  </div>
+
+  <!-- ── Quick Trade ── -->
+  <div id="quick-trade-section" style="display:none">
+    <div class="qt-bar">
+      <span class="qt-label">⚡ Quick Trade</span>
+      <input class="form-input ticker-input" id="qt-ticker" type="text" placeholder="AAPL" maxlength="10"
+             style="width:100px" oninput="this.value=this.value.toUpperCase()"
+             onkeydown="if(event.key==='Enter')quickTrade()"/>
+      <button class="btn btn-primary" onclick="quickTrade()">Analyze &amp; Buy →</button>
+      <span class="qt-hint">Type any ticker · fetches live price · opens order panel</span>
+      <div id="qt-status" style="display:none;font-size:11px"></div>
+    </div>
+  </div>
+
+  <!-- ── Portfolio summary ── -->
+  <div id="summary-section" style="display:none">
+    <div class="summary-bar" id="summary-bar"></div>
+  </div>
+
+  <!-- ── Analysis results ── -->
+  <div id="results-section" style="display:none">
+    <div class="card">
+      <div class="card-hdr">
+        📊 Portfolio Analysis
+        <span id="res-count" style="font-size:11px;font-weight:400;color:var(--text2)"></span>
+        <span style="margin-left:auto;font-size:11px;font-weight:400;color:var(--text2)">
+          Click row → signal detail &nbsp;|&nbsp; Buy/Sell → place order
+        </span>
+      </div>
+      <!-- Account filter tabs -->
+      <div class="acct-filter" id="acct-filter" style="display:none">
+        <div class="acct-ftab active" id="ftab-all" onclick="setAccountFilter(null)">All Accounts</div>
+      </div>
+      <div id="results-table-wrap" style="overflow-x:auto">
+        <table class="ptable">
+          <thead>
+            <tr>
+              <th>Ticker</th>
+              <th>Account</th>
+              <th>Shares</th>
+              <th>Avg Cost</th>
+              <th>Price Now</th>
+              <th>P&amp;L $</th>
+              <th>P&amp;L %</th>
+              <th>Signal</th>
+              <th>Recommendation</th>
+              <th>Danger</th>
+              <th>Order</th>
+            </tr>
+          </thead>
+          <tbody id="results-tbody"></tbody>
+        </table>
+      </div>
+    </div>
+  </div>
+
+</main>
+
+<!-- ═══ ORDER MODAL ══════════════════════════════════════════════════════════ -->
+<div id="order-overlay" onclick="if(event.target===this)closeOrderModal()">
+  <div class="order-card">
+
+    <!-- Header: ticker, price, buying power -->
+    <div class="order-hdr">
+      <div style="flex:1">
+        <div style="display:flex;align-items:baseline;gap:10px;flex-wrap:wrap">
+          <span id="ord-ticker-h" style="font-size:22px;font-weight:900;letter-spacing:1px"></span>
+          <span id="ord-price-h" style="font-size:18px;font-weight:700;color:var(--text)"></span>
+        </div>
+        <div id="ord-bp-h" style="font-size:11px;color:var(--green);font-weight:700;margin-top:3px"></div>
+      </div>
+      <button onclick="closeOrderModal()"
+              style="background:var(--bg3);border:1px solid var(--border);color:var(--text2);
+                     font-family:inherit;font-size:11px;padding:5px 12px;border-radius:6px;cursor:pointer;">✕</button>
+    </div>
+
+    <div class="order-body">
+
+      <!-- BUY / SELL tabs -->
+      <div class="order-side-toggle">
+        <button class="order-side-btn" id="ord-buy-btn"  onclick="setOrderSide('buy')">BUY</button>
+        <button class="order-side-btn" id="ord-sell-btn" onclick="setOrderSide('sell')">SELL</button>
+      </div>
+
+      <!-- Account selector -->
+      <div class="order-row">
+        <div class="order-label">Account</div>
+        <select class="order-input" id="ord-account" onchange="updateBuyingPower()">
+          <option value="">Default Account</option>
+        </select>
+        <div id="ord-bp" style="font-size:11px;color:var(--green);font-weight:700;margin-top:5px"></div>
+        <div id="ord-ira-warn" class="ira-warn" style="display:none">⚠ IRA — long positions only. Short selling not allowed.</div>
+      </div>
+
+      <!-- ── BUY panel ── -->
+      <div id="ord-buy-panel">
+        <div class="order-row">
+          <div class="order-label">Buy by</div>
+          <div class="order-amt-toggle">
+            <button class="order-amt-btn active" id="ord-by-shares-btn" onclick="setBuyMode('shares')"># Shares</button>
+            <button class="order-amt-btn"        id="ord-by-dollars-btn" onclick="setBuyMode('dollars')">$ Amount</button>
+          </div>
+        </div>
+        <div class="order-row" id="ord-shares-row">
+          <div class="order-label">Number of shares (whole numbers only)</div>
+          <input class="order-input" id="ord-qty" type="number" min="1" step="1" placeholder="1" oninput="updateEstimate()"/>
+        </div>
+        <div class="order-row" id="ord-dollars-row" style="display:none">
+          <div class="order-label">Dollar amount to invest ($)</div>
+          <input class="order-input" id="ord-dollars" type="number" min="1" step="1" placeholder="1000" oninput="updateEstimate()"/>
+          <div id="ord-dollars-calc" style="font-size:10px;color:var(--blue);margin-top:5px;line-height:1.4"></div>
+        </div>
+      </div>
+
+      <!-- ── SELL panel ── -->
+      <div id="ord-sell-panel" style="display:none">
+        <!-- Owned position context -->
+        <div id="ord-pos-ctx" style="display:none"></div>
+        <div class="order-row">
+          <div class="order-label">Sell amount</div>
+          <div class="order-amt-toggle">
+            <button class="order-amt-btn active" id="ord-partial-btn" onclick="setSellMode('partial')">Partial</button>
+            <button class="order-amt-btn"        id="ord-sellall-btn" onclick="setSellMode('all')">Sell All</button>
+          </div>
+        </div>
+        <div class="order-row" id="ord-sellqty-row">
+          <div class="order-label">Shares to sell (fractional ok)</div>
+          <input class="order-input" id="ord-sell-qty" type="number" min="0.001" step="0.001" placeholder="0" oninput="updateEstimate()"/>
+        </div>
+      </div>
+
+      <!-- Order type -->
+      <div class="order-row">
+        <div class="order-label">Order type</div>
+        <div class="order-type-toggle">
+          <button class="order-type-btn active" id="ord-market-btn" onclick="setOrderType('market')">Market</button>
+          <button class="order-type-btn"        id="ord-limit-btn"  onclick="setOrderType('limit')">Limit</button>
+        </div>
+        <div id="ord-type-note" style="font-size:9px;color:var(--text2);margin-top:4px">Executes immediately at best available price</div>
+      </div>
+      <div class="order-row" id="ord-limit-row" style="display:none">
+        <div class="order-label">Limit price ($)</div>
+        <input class="order-input" id="ord-limit-price" type="number" min="0.01" step="0.01" placeholder="0.00" oninput="updateEstimate()"/>
+      </div>
+
+      <!-- Estimated total -->
+      <div class="order-est">
+        <div>
+          <div id="ord-est-label" style="font-size:9px;color:var(--text2);text-transform:uppercase;letter-spacing:.5px">Estimated Total</div>
+          <div id="ord-est-detail" style="font-size:9px;color:var(--text2);margin-top:2px"></div>
+        </div>
+        <div class="order-est-val" id="ord-est">$—</div>
+      </div>
+
+      <!-- GFD vs GTC -->
+      <div style="display:flex;align-items:center;gap:8px;margin-top:14px;font-size:10px;color:var(--text2)">
+        <label style="display:flex;align-items:center;gap:6px;cursor:pointer">
+          <input type="checkbox" id="ord-gtc-toggle" checked style="accent-color:var(--blue)"/>
+          Good Till Cancelled (GTC)
+        </label>
+        <span style="color:var(--text2)">— keeps order active if market is closed. Uncheck for today-only (GFD).</span>
+      </div>
+
+      <button class="order-confirm-btn buy-mode" id="ord-confirm-btn" onclick="submitOrder()">Place Buy Order</button>
+      <div id="ord-result" style="display:none"></div>
+
+    </div>
+  </div>
+</div>
+
+<!-- ═══ MODAL ════════════════════════════════════════════════════════════════ -->
+<div id="modal-overlay" onclick="if(event.target===this)closeModal()">
+  <div class="modal-card">
+    <button class="modal-close-btn" onclick="closeModal()">✕ Close</button>
+
+    <div class="modal-header">
+      <div>
+        <div class="modal-ticker" id="m-ticker-h">—</div>
+        <div class="modal-price"  id="m-price">—</div>
+        <div class="modal-chg">
+          <span id="m-chg-open">—</span>
+          <span id="m-chg-15m">—</span>
+        </div>
+      </div>
+      <div class="modal-header-right">
+        <span class="grade-pill" id="m-grade-pill">—</span>
+        <span class="modal-score-big" id="m-score-big">—</span>
+        <span class="danger-count" id="m-danger-badge">⚠0</span>
+      </div>
+    </div>
+
+    <!-- Danger alert -->
+    <div id="m-danger-alert" style="display:none"></div>
+
+    <!-- Position context -->
+    <div class="modal-section" id="m-pos-section" style="display:none">
+      <div class="modal-section-hdr">💼 Your Position</div>
+      <div class="position-context" id="m-pos-context"></div>
+      <div style="margin-top:10px" id="m-rec-box"></div>
+    </div>
+
+    <!-- Analyst verdict -->
+    <div class="modal-section">
+      <div class="modal-section-hdr">🤖 Analyst Verdict</div>
+      <div class="modal-analysis-text" id="m-analysis">—</div>
+      <div id="m-key-risk" style="margin-top:8px"></div>
+    </div>
+
+    <!-- Why Buy / Risk Factors -->
+    <div class="modal-section">
+      <div class="modal-two-col">
+        <div>
+          <div class="modal-section-hdr" style="color:var(--green)">✅ Bullish Signals</div>
+          <div class="signal-list" id="m-bull-list"></div>
+        </div>
+        <div>
+          <div class="modal-section-hdr" style="color:var(--red)">⚠ Risk Factors</div>
+          <div class="signal-list" id="m-bear-list"></div>
+        </div>
+      </div>
+    </div>
+
+    <!-- Trade plan -->
+    <div class="modal-section">
+      <div class="modal-section-hdr">📐 Trade Plan</div>
+      <div class="plan-grid">
+        <div class="plan-level plan-entry"> <div class="plan-level-label">Entry</div>  <div class="plan-level-val" id="m-entry">—</div></div>
+        <div class="plan-level plan-target"><div class="plan-level-label">Target</div> <div class="plan-level-val" id="m-target">—</div></div>
+        <div class="plan-level plan-stop">  <div class="plan-level-label">ATR Stop</div><div class="plan-level-val" id="m-stop">—</div></div>
+      </div>
+      <div class="rr-bar-wrap">
+        <div style="display:flex;justify-content:space-between;font-size:11px;margin-bottom:6px">
+          <span style="color:var(--text2)">Risk / Reward</span>
+          <span id="m-rr-text" style="font-weight:700;color:var(--orange)">—</span>
+        </div>
+        <div class="rr-bar-track"><div class="rr-bar-loss" id="m-rr-l" style="width:33%"></div><div class="rr-bar-gain" id="m-rr-g" style="width:67%"></div></div>
+        <div style="display:flex;justify-content:space-between;font-size:10px;color:var(--text2)">
+          <span id="m-loss-pct" style="color:var(--red)">—</span><span>Risk : Reward</span><span id="m-gain-pct" style="color:var(--green)">—</span>
+        </div>
+        <div style="margin-top:8px;font-size:11px;color:var(--text2)">
+          Horizon: <strong id="m-horizon" style="color:var(--text)">—</strong> &nbsp;·&nbsp;
+          Conviction: <strong id="m-conviction" style="color:var(--text)">—</strong>
+        </div>
+      </div>
+    </div>
+
+    <!-- Chart -->
+    <div class="modal-section">
+      <div class="modal-section-hdr">📈 Price History — Last 30 Days</div>
+      <div class="chart-wrap"><canvas id="m-chart" height="200"></canvas></div>
+      <div class="chart-legend" id="m-chart-legend"></div>
+      <div id="m-chart-summary" style="margin-top:8px;font-size:11px;color:var(--text2);line-height:1.6"></div>
+    </div>
+
+    <!-- Historical patterns -->
+    <div class="modal-section" id="m-patterns-section">
+      <div class="modal-section-hdr">🔁 Similar Past Setups on This Stock</div>
+      <div style="font-size:10px;color:var(--text2);margin-bottom:12px">Past dates with similar RSI, volume, EMA — what happened in the next 5 and 10 days</div>
+      <div id="m-patterns"></div>
+      <div id="m-win-rate"></div>
+    </div>
+
+    <!-- Signal snapshot -->
+    <div class="modal-section">
+      <div class="modal-section-hdr">📋 Full Technical Snapshot</div>
+      <div class="signal-snap" id="m-signal-snap"></div>
+    </div>
+  </div>
+</div>
+
+<script>
+const API = 'http://localhost:8003';
+let _results          = [];
+let _marketCtx        = {};
+let _manualPositions  = [];
+let _activeTab        = 'rh';
+let _accounts         = [];          // [{account_number, label, type, buying_power}]
+let _accountFilter    = null;        // null = all, or account_number string
+let _isRHConnected    = false;       // whether we're using Robinhood (not manual)
+// Order modal state
+let _ordTicker = ''; let _ordSide = 'buy'; let _ordType = 'market'; let _ordPrice = 0;
+
+// ── Tab switching ─────────────────────────────────────────────────────────────
+
+function switchTab(tab) {
+  _activeTab = tab;
+  document.getElementById('tab-rh').classList.toggle('active', tab==='rh');
+  document.getElementById('tab-manual').classList.toggle('active', tab==='manual');
+  document.getElementById('tab-body-rh').style.display     = tab==='rh'     ? '' : 'none';
+  document.getElementById('tab-body-manual').style.display = tab==='manual' ? '' : 'none';
+}
+
+// ── Robinhood login ───────────────────────────────────────────────────────────
+
+async function doRobinhoodLogin() {
+  const btn  = document.getElementById('rh-login-btn');
+  const alert = document.getElementById('rh-alert');
+  btn.disabled = true; btn.textContent = 'Connecting...';
+
+  const payload = {
+    username: document.getElementById('rh-user').value.trim(),
+    password: document.getElementById('rh-pass').value,
+    mfa_code: document.getElementById('rh-mfa').value.trim() || null,
+  };
+
+  try {
+    const res  = await fetch(`${API}/api/portfolio/login`, {
+      method: 'POST', headers: {'Content-Type':'application/json'}, body: JSON.stringify(payload),
+    });
+    const data = await res.json();
+
+    if (data.success) {
+      showAlert('rh-alert', 'success', '✓ Connected to Robinhood — loading positions...');
+      await loadRHPositions();
+    } else if (data.needs_mfa) {
+      document.getElementById('mfa-group').style.display = '';
+      document.getElementById('rh-mfa').focus();
+      showAlert('rh-alert', 'info', '📱 Enter the MFA / SMS code sent to your device, then click Connect again.');
+    } else {
+      showAlert('rh-alert', 'error', '⛔ ' + (data.error || 'Login failed'));
+    }
+  } catch (e) {
+    showAlert('rh-alert', 'error', '⛔ Server error — is the hotpicks server running?');
+  } finally {
+    btn.disabled = false; btn.textContent = 'Connect →';
+  }
+}
+
+async function loadRHPositions() {
+  try {
+    // Fetch positions and accounts in parallel
+    const [posRes, acctRes] = await Promise.all([
+      fetch(`${API}/api/portfolio/positions`),
+      fetch(`${API}/api/portfolio/accounts`),
+    ]);
+    const posData  = await posRes.json();
+    const acctData = acctRes.ok ? await acctRes.json() : { accounts: [] };
+    if (!posRes.ok) { showAlert('rh-alert','error','⛔ '+posData.error); return; }
+
+    _manualPositions  = posData.positions || [];
+    _accounts         = acctData.accounts || [];
+    _isRHConnected    = true;
+
+    document.getElementById('rh-pos-count').textContent  = `${_manualPositions.length} positions`;
+    document.getElementById('rh-acct-count').textContent = `${_accounts.length}`;
+    document.getElementById('rh-login-form').style.display     = 'none';
+    document.getElementById('rh-logged-in').style.display      = '';
+    document.getElementById('quick-trade-section').style.display= '';
+    renderAccountsBar();
+  } catch (e) {
+    showAlert('rh-alert', 'error', '⛔ Could not load positions');
+  }
+}
+
+function renderAccountsBar() {
+  const bar = document.getElementById('accounts-bar');
+  if (!_accounts.length) { bar.innerHTML = ''; return; }
+  bar.innerHTML = _accounts.map(a => `
+    <div class="acct-card" onclick="setAccountFilter('${a.account_number}')">
+      <div class="acct-card-label">${a.label}</div>
+      <div class="acct-card-bp">$${a.buying_power.toLocaleString(undefined,{maximumFractionDigits:0})}</div>
+      <div class="acct-card-sub">buying power</div>
+    </div>`).join('');
+}
+
+function setAccountFilter(acctNum) {
+  _accountFilter = acctNum;
+  // Update account cards highlight
+  document.querySelectorAll('.acct-card').forEach((el, i) => {
+    el.classList.toggle('active', _accounts[i]?.account_number === acctNum);
+  });
+  // Update filter tabs
+  document.querySelectorAll('.acct-ftab').forEach(el => el.classList.remove('active'));
+  const activeTab = acctNum
+    ? document.getElementById('ftab-' + acctNum)
+    : document.getElementById('ftab-all');
+  if (activeTab) activeTab.classList.add('active');
+  renderResultsTable();
+}
+
+async function doLogout() {
+  await fetch(`${API}/api/portfolio/logout`, {method:'POST'});
+  document.getElementById('rh-login-form').style.display = '';
+  document.getElementById('rh-logged-in').style.display  = 'none';
+  document.getElementById('rh-alert').style.display = 'none';
+  document.getElementById('mfa-group').style.display = 'none';
+  _manualPositions = []; _accounts = []; _isRHConnected = false; _accountFilter = null;
+  document.getElementById('summary-section').style.display = 'none';
+  document.getElementById('results-section').style.display = 'none';
+}
+
+// ── Manual entry ──────────────────────────────────────────────────────────────
+
+function addManualPosition() {
+  const ticker = document.getElementById('m-ticker').value.trim().toUpperCase();
+  const qty    = parseFloat(document.getElementById('m-qty').value) || 0;
+  const cost   = parseFloat(document.getElementById('m-cost').value) || 0;
+  if (!ticker) { document.getElementById('m-ticker').focus(); return; }
+
+  const existing = _manualPositions.findIndex(p => p.ticker === ticker);
+  const entry = {ticker, quantity: qty, avg_cost: cost};
+  if (existing >= 0) _manualPositions[existing] = entry;
+  else               _manualPositions.push(entry);
+
+  document.getElementById('m-ticker').value = '';
+  document.getElementById('m-qty').value    = '';
+  document.getElementById('m-cost').value   = '';
+  document.getElementById('m-ticker').focus();
+  renderManualTable();
+}
+
+function removeManualPosition(ticker) {
+  _manualPositions = _manualPositions.filter(p => p.ticker !== ticker);
+  renderManualTable();
+}
+
+function renderManualTable() {
+  const wrap  = document.getElementById('manual-positions-wrap');
+  const empty = document.getElementById('manual-empty');
+  const tbody = document.getElementById('manual-pos-body');
+
+  if (!_manualPositions.length) { wrap.style.display='none'; empty.style.display=''; return; }
+  wrap.style.display=''; empty.style.display='none';
+
+  tbody.innerHTML = _manualPositions.map(p => {
+    const estVal = p.quantity && p.avg_cost ? `$${(p.quantity * p.avg_cost).toLocaleString(undefined,{maximumFractionDigits:0})}` : '—';
+    return `<tr>
+      <td><strong>${p.ticker}</strong></td>
+      <td>${p.quantity||'—'}</td>
+      <td>${p.avg_cost ? '$'+p.avg_cost : '—'}</td>
+      <td style="color:var(--text2)">${estVal}</td>
+      <td><button class="del-btn" onclick="removeManualPosition('${p.ticker}')">✕</button></td>
+    </tr>`;
+  }).join('');
+}
+
+// ── Run analysis ──────────────────────────────────────────────────────────────
+
+async function runPortfolioAnalysis() {
+  if (!_manualPositions.length) { alert('Add at least one position first.'); return; }
+
+  const section = document.getElementById('results-section');
+  section.style.display = '';
+  document.getElementById('results-tbody').innerHTML = `
+    <tr><td colspan="10">
+      <div class="loading-state">
+        <div class="spinner"></div>
+        <div>Analyzing ${_manualPositions.length} position${_manualPositions.length>1?'s':''}...</div>
+        <div style="font-size:10px;color:var(--border)">Technical signals · Market regime · AI for critical positions</div>
+      </div>
+    </td></tr>`;
+  document.getElementById('summary-section').style.display = 'none';
+
+  try {
+    const res  = await fetch(`${API}/api/portfolio/analyze`, {
+      method: 'POST', headers: {'Content-Type':'application/json'},
+      body: JSON.stringify({positions: _manualPositions}),
+    });
+    const data = await res.json();
+    if (!res.ok) { document.getElementById('results-tbody').innerHTML = `<tr><td colspan="10" style="color:var(--red);padding:20px">⛔ ${data.error||'Analysis failed'}</td></tr>`; return; }
+
+    _results   = data.positions || [];
+    _marketCtx = data.market_ctx || {};
+
+    document.getElementById('quick-trade-section').style.display = '';
+    renderMarketBanner();
+    renderSummary(data);
+    renderResultsTable();
+  } catch (e) {
+    document.getElementById('results-tbody').innerHTML = `<tr><td colspan="10" style="color:var(--red);padding:20px">⛔ Request failed — is the server running?</td></tr>`;
+  }
+}
+
+// ── Render results ────────────────────────────────────────────────────────────
+
+function renderMarketBanner() {
+  const b = document.getElementById('market-banner');
+  const r = _marketCtx.regime || 'neutral';
+  if (r === 'bear') {
+    b.className='bear'; b.style.display='';
+    b.textContent=`⛔ BEARISH MARKET — SPY ${chgStr(_marketCtx.spy_chg)}, QQQ ${chgStr(_marketCtx.qqq_chg)} · High risk environment — consider reducing exposure`;
+  } else if (r === 'caution') {
+    b.className='caution'; b.style.display='';
+    b.textContent=`⚡ MARKET CAUTION — SPY ${chgStr(_marketCtx.spy_chg)}, QQQ ${chgStr(_marketCtx.qqq_chg)}`;
+  } else { b.style.display='none'; }
+}
+
+function renderSummary(data) {
+  document.getElementById('summary-section').style.display = '';
+  const pnlPos = data.total_pnl >= 0, pnlPct = data.total_pnl_pct;
+  document.getElementById('summary-bar').innerHTML = `
+    <div class="sum-item"><div class="sum-label">Portfolio Value</div>
+      <div class="sum-val sum-neu">$${(data.total_value||0).toLocaleString(undefined,{maximumFractionDigits:0})}</div></div>
+    <div class="sum-item"><div class="sum-label">Total P&amp;L</div>
+      <div class="sum-val ${pnlPos?'sum-pos':'sum-neg'}">${pnlPos?'+':''}$${Math.abs(data.total_pnl||0).toLocaleString(undefined,{maximumFractionDigits:0})}</div></div>
+    <div class="sum-item"><div class="sum-label">P&amp;L %</div>
+      <div class="sum-val ${pnlPos?'sum-pos':'sum-neg'}">${pnlPos?'+':''}${(pnlPct||0).toFixed(2)}%</div></div>
+    <div class="sum-item"><div class="sum-label">Positions</div>
+      <div class="sum-val sum-neu">${data.total}</div></div>
+    <div class="sum-item"><div class="sum-label">⚠ Danger Alerts</div>
+      <div class="sum-val ${data.danger_count?'sum-warn':'sum-neu'}">${data.danger_count}</div></div>
+    <div class="sum-item"><div class="sum-label">🔴 Sell Signals</div>
+      <div class="sum-val ${data.sell_signals?'sum-neg':'sum-neu'}">${data.sell_signals}</div></div>
+    <div class="sum-item"><div class="sum-label">Market Regime</div>
+      <div class="sum-val" style="font-size:14px;color:${regimeColor(_marketCtx.regime)}">${(_marketCtx.regime||'neutral').toUpperCase()}</div></div>`;
+
+  // Build account filter tabs (only when multi-account data exists)
+  const filterEl = document.getElementById('acct-filter');
+  const uniqueAccts = [...new Map(_results.map(r => [r.account_number, {num: r.account_number, label: r.account_label}])).values()];
+  if (uniqueAccts.length > 1) {
+    filterEl.style.display = '';
+    filterEl.innerHTML = `<div class="acct-ftab active" id="ftab-all" onclick="setAccountFilter(null)">All Accounts</div>`
+      + uniqueAccts.map(a => `<div class="acct-ftab" id="ftab-${a.num}" onclick="setAccountFilter('${a.num}')">${a.label}</div>`).join('');
+  } else { filterEl.style.display = 'none'; }
+}
+
+function regimeColor(r) {
+  return r==='bull'?'var(--green)':r==='bear'?'var(--red)':r==='caution'?'var(--yellow)':'var(--text2)';
+}
+
+function renderResultsTable() {
+  const filtered = _accountFilter
+    ? _results.filter(r => r.account_number === _accountFilter)
+    : _results;
+  document.getElementById('res-count').textContent = `${filtered.length} position${filtered.length!==1?'s':''}`;
+  const tbody = document.getElementById('results-tbody');
+
+  tbody.innerHTML = filtered.map(r => {
+    const sig  = r.signals || {};
+    const pos  = r.position || {};
+    const rec  = r.portfolio_rec || {};
+    const d    = r.danger || 0;
+    const pnlPctStr = r.pnl_pct != null ? `${r.pnl_pct>=0?'+':''}${r.pnl_pct.toFixed(2)}%` : '—';
+    const pnlUsdStr = r.pnl_usd != null ? `${r.pnl_usd>=0?'+$':'−$'}${Math.abs(r.pnl_usd).toLocaleString(undefined,{maximumFractionDigits:0})}` : '—';
+    const pnlCls    = r.pnl_pct == null ? 'pnl-neu' : r.pnl_pct>=0 ? 'pnl-pos' : 'pnl-neg';
+    const pillClass = 'pill-'+r.grade.replace(/ /g,'-');
+    const acctNum   = r.account_number || '';
+    const acctLabel = r.account_label  || 'Brokerage';
+    const orderBtns = _isRHConnected ? `
+      <div style="display:flex;gap:5px" onclick="event.stopPropagation()">
+        <button class="btn-buy"  onclick="openOrderModal('${r.ticker}','buy','${acctNum}',${sig.price||0},0,0)">Buy</button>
+        <button class="btn-sell" onclick="openOrderModal('${r.ticker}','sell','${acctNum}',${sig.price||0},${pos.quantity||0},${pos.avg_cost||0})">Sell</button>
+      </div>` : '<span style="color:var(--text2);font-size:10px">—</span>';
+
+    return `<tr onclick="openModal('${r.ticker}')">
+      <td><span class="pt-ticker">${r.ticker}</span></td>
+      <td style="font-size:10px;color:var(--text2);white-space:nowrap">${acctLabel}</td>
+      <td class="pt-qty">${pos.quantity!=null?pos.quantity:'—'}</td>
+      <td style="color:var(--text2)">${pos.avg_cost?'$'+pos.avg_cost:'—'}</td>
+      <td class="pt-price">$${fmt(sig.price)}</td>
+      <td class="${pnlCls}">${pnlUsdStr}</td>
+      <td class="${pnlCls}">${pnlPctStr}</td>
+      <td><span class="grade-pill ${pillClass}">${r.grade}</span></td>
+      <td><span class="rec-pill ${rec.cls||'rec-neutral'}">${rec.icon||''} ${rec.action||'—'}</span></td>
+      <td><span class="danger-count ${d>=2?'has-danger':''}" title="${(r.reasons||[]).slice(0,3).join(' | ')}">⚠${d}</span></td>
+      <td>${orderBtns}</td>
+    </tr>`;
+  }).join('');
+}
+
+// ── Modal ─────────────────────────────────────────────────────────────────────
+
+function openModal(ticker) {
+  const r = _results.find(x => x.ticker === ticker);
+  if (!r) return;
+  renderModal(r);
+  document.getElementById('modal-overlay').style.display = 'flex';
+  document.getElementById('modal-overlay').scrollTop = 0;
+  document.body.style.overflow = 'hidden';
+}
+
+function closeModal() {
+  document.getElementById('modal-overlay').style.display = 'none';
+  document.body.style.overflow = '';
+}
+
+document.addEventListener('keydown', e => {
+  if (e.key !== 'Escape') return;
+  if (document.getElementById('order-overlay').style.display === 'flex') { closeOrderModal(); return; }
+  closeModal();
+});
+
+function renderModal(r) {
+  const sig     = r.signals      || {};
+  const plan    = r.trade_plan   || {};
+  const history = r.price_history || [];
+  const patterns= r.pattern_history || [];
+  const pos     = r.position     || {};
+  const rec     = r.portfolio_rec || {};
+  const danger  = r.danger || 0;
+
+  // Header
+  document.getElementById('m-ticker-h').textContent = r.ticker;
+  document.getElementById('m-price').textContent    = '$' + fmt(sig.price);
+  document.getElementById('m-chg-open').innerHTML   = `<span class="${chgClass(sig.chg_open)}">${chgStr(sig.chg_open)} from open</span>`;
+  document.getElementById('m-chg-15m').innerHTML    = `<span class="${chgClass(sig.chg_15m)}">${chgStr(sig.chg_15m)} 15m</span>`;
+  const pill = document.getElementById('m-grade-pill');
+  pill.className = 'grade-pill pill-'+r.grade.replace(/ /g,'-');
+  pill.textContent = r.grade;
+  const sc = scoreColor(r.score);
+  const scoreEl = document.getElementById('m-score-big');
+  scoreEl.textContent = (r.score>=0?'+':'')+r.score;
+  scoreEl.style.color = sc.color;
+  const dBadge = document.getElementById('m-danger-badge');
+  dBadge.textContent = '⚠'+danger;
+  dBadge.className = 'danger-count '+(danger>=2?'has-danger':'');
+
+  // Danger alert
+  const dAlert = document.getElementById('m-danger-alert');
+  if (danger>=4){
+    dAlert.style.display='';
+    dAlert.innerHTML=`<div class="modal-danger-alert modal-danger-high">⛔ <div><strong>${danger} DANGER SIGNALS</strong> — Multiple risk factors. High reversal risk.</div></div>`;
+  } else if(danger>=2){
+    dAlert.style.display='';
+    dAlert.innerHTML=`<div class="modal-danger-alert modal-danger-medium">⚡ <div><strong>${danger} risk factors detected</strong> — Trade cautiously.</div></div>`;
+  } else { dAlert.style.display='none'; }
+
+  // Position context
+  const posSection = document.getElementById('m-pos-section');
+  if (pos.quantity || pos.avg_cost) {
+    posSection.style.display = '';
+    const price    = sig.price || 0;
+    const qty      = pos.quantity || 0;
+    const avgCost  = pos.avg_cost || 0;
+    const curVal   = (price * qty).toFixed(2);
+    const costBasis= (avgCost * qty).toFixed(2);
+    document.getElementById('m-pos-context').innerHTML = `
+      <div class="pos-ctx-item"><div class="label">Shares</div><div class="val">${qty}</div></div>
+      <div class="pos-ctx-item"><div class="label">Avg Cost</div><div class="val">$${avgCost}</div></div>
+      <div class="pos-ctx-item"><div class="label">Current Value</div><div class="val">$${parseFloat(curVal).toLocaleString()}</div></div>
+      <div class="pos-ctx-item"><div class="label">P&amp;L</div>
+        <div class="val ${r.pnl_pct>=0?'pnl-pos':'pnl-neg'}">
+          ${r.pnl_pct!=null?(r.pnl_pct>=0?'+':'')+(r.pnl_pct.toFixed(2))+'%':'—'}
+        </div>
+      </div>`;
+    document.getElementById('m-rec-box').innerHTML = `
+      <div class="alert ${rec.cls==='rec-buy'?'alert-success':rec.cls==='rec-sell'?'alert-error':'alert-info'}">
+        ${rec.icon||''} <strong>${rec.action||'—'}</strong> — ${rec.reason||''}
+      </div>`;
+  } else { posSection.style.display='none'; }
+
+  // Analysis
+  document.getElementById('m-analysis').innerHTML = `
+    <div style="font-size:9px;font-weight:700;margin-bottom:6px;color:${plan.ai_generated?'var(--purple)':'var(--blue)'}">${plan.ai_generated?'🤖 Claude AI':'📐 Technical'} Analysis</div>
+    ${plan.analysis||'No analysis available.'}`;
+  document.getElementById('m-key-risk').innerHTML = plan.key_risk
+    ? `<div class="modal-key-risk">⚠ <strong>Key Risk:</strong> ${plan.key_risk}</div>` : '';
+
+  // Bull / Bear reasons
+  const bullKw = ['thrust','Accelerat','Building','Massive','High volume','Above-avg','above VWAP','Just above','Trading above','momentum zone','Bullish','EMA 9 >','gap-up','Gap-up','Strong','rising','tailwind','outperforming','market leader','confirmed','midzone','Market tailwind'];
+  const bearKw = ['Selling hard','Under pressure','Fading','Thin volume','Below VWAP','overbought','elevated','Extended','Approaching upper','above upper','ABOVE upper','near upper','bearish','Bearish','EMA 9 < EMA','Gap-down','falling','below signal','choppy','caution','BEARISH MARKET','underperforming','laggard','Shooting star','BEARISH ENGULFING','Doji','divergence','DANGER','SKIP','pressure','downtrend'];
+  const bull = document.getElementById('m-bull-list'), bear = document.getElementById('m-bear-list');
+  bull.innerHTML=''; bear.innerHTML='';
+  let bc=0, rc=0;
+  for(const reason of (r.reasons||[])){
+    const isBear = bearKw.some(k=>reason.includes(k));
+    const isBull = bullKw.some(k=>reason.includes(k));
+    if(isBear&&rc<6){bear.innerHTML+=`<div class="signal-item bear"><span>✗</span><span>${reason}</span></div>`;rc++;}
+    else if(isBull&&bc<6){bull.innerHTML+=`<div class="signal-item bull"><span>✓</span><span>${reason}</span></div>`;bc++;}
+  }
+  if(!bc) bull.innerHTML=`<div class="signal-item"><span style="color:var(--text2)">No strong bullish signals</span></div>`;
+  if(!rc) bear.innerHTML=`<div class="signal-item bull"><span>✓</span><span style="color:var(--green)">No major risk factors</span></div>`;
+
+  // Trade plan
+  document.getElementById('m-entry').textContent  = plan.entry !=null?'$'+fmt(plan.entry):'—';
+  document.getElementById('m-target').textContent = plan.target!=null?'$'+fmt(plan.target):'—';
+  document.getElementById('m-stop').textContent   = plan.stop  !=null?'$'+fmt(plan.stop):'—';
+  document.getElementById('m-rr-text').textContent = 'R:R '+(plan.rr||'—');
+  document.getElementById('m-horizon').textContent   = plan.horizon   ||'—';
+  document.getElementById('m-conviction').textContent=(plan.conviction||'—').toUpperCase();
+  if(plan.entry&&plan.target&&plan.stop){
+    const loss=plan.entry-plan.stop, gain=plan.target-plan.entry, tot=loss+gain;
+    if(tot>0){
+      document.getElementById('m-rr-l').style.width=(loss/tot*100).toFixed(0)+'%';
+      document.getElementById('m-rr-g').style.width=(gain/tot*100).toFixed(0)+'%';
+      document.getElementById('m-loss-pct').textContent='-'+fmt(loss/plan.entry*100,2)+'%';
+      document.getElementById('m-gain-pct').textContent='+'+fmt(gain/plan.entry*100,2)+'%';
+    }
+  }
+
+  // Chart
+  const canvas = document.getElementById('m-chart');
+  setTimeout(()=>{ drawChart(canvas, history, plan, sig); renderChartSummary(history, plan, r.ticker); }, 50);
+
+  // Patterns
+  renderPatterns(patterns);
+
+  // Signals
+  renderSignalSnap(sig);
+}
+
+// ── Chart ─────────────────────────────────────────────────────────────────────
+
+function drawChart(canvas, history, plan, sig) {
+  const W=canvas.parentElement.offsetWidth||700, H=200;
+  canvas.width=W; canvas.height=H;
+  const ctx=canvas.getContext('2d');
+  ctx.fillStyle='#1c2333'; ctx.fillRect(0,0,W,H);
+  if(!history||history.length<2){
+    ctx.fillStyle='#8b949e';ctx.font='12px monospace';ctx.textAlign='center';
+    ctx.fillText('No historical data',W/2,H/2); return;
+  }
+  const closes=history.map(h=>h.close), dates=history.map(h=>h.date);
+  let mn=Math.min(...closes), mx=Math.max(...closes);
+  if(plan.entry){mn=Math.min(mn,plan.stop||plan.entry);mx=Math.max(mx,plan.target||plan.entry);}
+  const pd=(mx-mn)*0.12; mn-=pd; mx+=pd;
+  const PAD={top:20,right:90,bottom:28,left:56};
+  const pW=W-PAD.left-PAD.right, pH=H-PAD.top-PAD.bottom;
+  const xS=i=>PAD.left+(i/(closes.length-1))*pW;
+  const yS=p=>PAD.top+(1-(p-mn)/(mx-mn))*pH;
+  // Grid
+  ctx.strokeStyle='#30363d';ctx.lineWidth=0.5;
+  for(let i=0;i<=4;i++){
+    const y=PAD.top+(i/4)*pH, v=mx-(i/4)*(mx-mn);
+    ctx.beginPath();ctx.moveTo(PAD.left,y);ctx.lineTo(W-PAD.right,y);ctx.stroke();
+    ctx.fillStyle='#8b949e';ctx.font='9px monospace';ctx.textAlign='right';
+    ctx.fillText('$'+v.toFixed(v<10?2:v<100?1:0),PAD.left-3,y+3);
+  }
+  // Zones
+  if(plan.entry&&plan.target&&plan.stop){
+    const ex=xS(closes.length-1);
+    ctx.fillStyle='rgba(63,185,80,.07)';ctx.fillRect(ex,yS(plan.target),pW+PAD.right,Math.abs(yS(plan.entry)-yS(plan.target)));
+    ctx.fillStyle='rgba(248,81,73,.07)';ctx.fillRect(ex,yS(plan.entry),pW+PAD.right,Math.abs(yS(plan.stop)-yS(plan.entry)));
+  }
+  const isUp=closes[closes.length-1]>=closes[0],lc=isUp?'#3fb950':'#f85149';
+  ctx.strokeStyle=lc;ctx.lineWidth=2;ctx.beginPath();
+  closes.forEach((p,i)=>i===0?ctx.moveTo(xS(i),yS(p)):ctx.lineTo(xS(i),yS(p)));ctx.stroke();
+  const g=ctx.createLinearGradient(0,PAD.top,0,PAD.top+pH);
+  g.addColorStop(0,isUp?'rgba(63,185,80,.15)':'rgba(248,81,73,.15)');g.addColorStop(1,'rgba(0,0,0,0)');
+  ctx.fillStyle=g;ctx.beginPath();
+  closes.forEach((p,i)=>i===0?ctx.moveTo(xS(i),yS(p)):ctx.lineTo(xS(i),yS(p)));
+  ctx.lineTo(xS(closes.length-1),PAD.top+pH);ctx.lineTo(xS(0),PAD.top+pH);ctx.closePath();ctx.fill();
+  // H-lines
+  if(plan.entry){
+    const hl=(price,color,label)=>{
+      const y=yS(price); if(y<PAD.top-2||y>PAD.top+pH+2)return;
+      ctx.setLineDash([4,3]);ctx.strokeStyle=color;ctx.lineWidth=1;
+      ctx.beginPath();ctx.moveTo(xS(closes.length-1),y);ctx.lineTo(W-4,y);ctx.stroke();ctx.setLineDash([]);
+      ctx.fillStyle=color;ctx.font='bold 9px monospace';ctx.textAlign='left';
+      ctx.fillText(label+' $'+price.toFixed(price<10?2:price<100?1:0),xS(closes.length-1)+2,y-2);
+    };
+    if(plan.target)hl(plan.target,'#3fb950','TGT');
+    hl(plan.entry,'#58a6ff','ENT');
+    if(plan.stop)hl(plan.stop,'#f85149','STP');
+  }
+  const lx=xS(closes.length-1),ly=yS(closes[closes.length-1]);
+  ctx.fillStyle=lc;ctx.beginPath();ctx.arc(lx,ly,4,0,Math.PI*2);ctx.fill();
+  ctx.strokeStyle='#0d1117';ctx.lineWidth=1.5;ctx.beginPath();ctx.arc(lx,ly,4,0,Math.PI*2);ctx.stroke();
+  ctx.fillStyle='#8b949e';ctx.font='9px monospace';ctx.textAlign='center';
+  const step=Math.max(1,Math.floor(closes.length/5));
+  for(let i=0;i<closes.length;i+=step)ctx.fillText((dates[i]||'').slice(5),xS(i),H-6);
+
+  const leg=document.getElementById('m-chart-legend');
+  const t30=closes.length>=2?((closes[closes.length-1]-closes[0])/closes[0]*100).toFixed(1):'0';
+  leg.innerHTML=`<span style="color:${lc}">● 30-day trend: ${parseFloat(t30)>=0?'+':''}${t30}%</span>
+    ${plan.target?`<span style="color:#3fb950">-- Target $${fmt(plan.target)}</span>`:''}
+    ${plan.entry ?`<span style="color:#58a6ff">-- Entry $${fmt(plan.entry)}</span>`:''}
+    ${plan.stop  ?`<span style="color:#f85149">-- Stop $${fmt(plan.stop)}</span>`:''}`;
+}
+
+function renderChartSummary(history, plan, ticker) {
+  const el=document.getElementById('m-chart-summary');
+  if(!history||history.length<2){el.innerHTML='';return;}
+  const first=history[0],last=history[history.length-1];
+  const t=((last.close-first.close)/first.close*100).toFixed(1);
+  const tc=parseFloat(t)>=0?'var(--green)':'var(--red)';
+  el.innerHTML=`<strong style="color:var(--text)">BEFORE:</strong> ${ticker} moved from <strong>$${first.close}</strong> (${first.date}) to <strong>$${last.close}</strong> (${last.date}) — <strong style="color:${tc}">${parseFloat(t)>=0?'+':''}${t}%</strong> over 30 days.
+    ${plan.entry&&plan.target&&plan.stop?`<br><strong style="color:var(--text)">TRADE:</strong> Entry <strong style="color:var(--blue)">$${fmt(plan.entry)}</strong> → Target <strong style="color:var(--green)">$${fmt(plan.target)}</strong> (+${fmt((plan.target-plan.entry)/plan.entry*100,2)}%) · Stop <strong style="color:var(--red)">$${fmt(plan.stop)}</strong> (-${fmt((plan.entry-plan.stop)/plan.entry*100,2)}%) · R:R ${plan.rr||'—'}`:''}`;
+}
+
+// ── Patterns ──────────────────────────────────────────────────────────────────
+
+function renderPatterns(patterns) {
+  const el=document.getElementById('m-patterns'), wr=document.getElementById('m-win-rate');
+  if(!patterns||!patterns.length){
+    el.innerHTML='<div style="font-size:11px;color:var(--text2);padding:8px 0">No similar past setups found (need 25+ days of history).</div>';
+    wr.innerHTML=''; return;
+  }
+  const wins=patterns.filter(p=>p.bullish).length,pct=Math.round(wins/patterns.length*100);
+  const wc=pct>=65?'good':pct>=45?'meh':'bad', wcolor=pct>=65?'var(--green)':pct>=45?'var(--yellow)':'var(--red)';
+  el.innerHTML=`<table class="pattern-table"><thead><tr>
+    <th>Date</th><th>Price</th><th>RSI</th><th>Vol</th><th>5-day</th><th>10-day</th><th>Result</th>
+  </tr></thead><tbody>${patterns.map(p=>`<tr>
+    <td>${p.date}</td><td>$${p.price}</td><td>${p.rsi}</td><td>${p.vol_ratio}x</td>
+    <td class="${p.ret_5d>=0?'ret-pos':'ret-neg'}">${p.ret_5d>=0?'+':''}${p.ret_5d}%</td>
+    <td class="${p.ret_10d>=0?'ret-pos':'ret-neg'}">${p.ret_10d>=0?'+':''}${p.ret_10d}%</td>
+    <td>${p.bullish?'<span style="color:var(--green)">✓ UP</span>':'<span style="color:var(--red)">✗ DOWN</span>'}</td>
+  </tr>`).join('')}</tbody></table>`;
+  wr.innerHTML=`<div class="win-rate-bar">
+    <div><div style="font-size:9px;color:var(--text2);text-transform:uppercase;letter-spacing:1px">Historical Win Rate (5-day)</div>
+      <div class="win-rate-val ${wc}">${pct}%</div>
+      <div style="font-size:10px;color:var(--text2)">${wins} of ${patterns.length} similar setups moved up</div></div>
+    <div style="flex:1"><div class="win-rate-bg"><div class="win-rate-fill" style="width:${pct}%;background:${wcolor}"></div></div>
+      <div style="display:flex;justify-content:space-between;font-size:9px;color:var(--text2);margin-top:3px"><span>0%</span><span>50%</span><span>100%</span></div>
+    </div></div>`;
+}
+
+// ── Signal snapshot ───────────────────────────────────────────────────────────
+
+function renderSignalSnap(sig) {
+  const el=document.getElementById('m-signal-snap');
+  const ctx=_marketCtx;
+  const R=(name,val,sc,sl)=>`<div class="snap-row"><span class="snap-name">${name}</span><span class="snap-val">${val}</span><span class="snap-status ${sc}">${sl}</span></div>`;
+  const rsi=sig.rsi||50, bb=sig.bb_pct??0.5, adx=sig.adx||20, vr=sig.vol_ratio||1;
+  const rs=sig.chg_open-(ctx.spy_chg||0);
+  el.innerHTML=[
+    R('RSI',rsi.toFixed(1),rsi>75?'snap-bad':rsi>68?'snap-warn':rsi>=52?'snap-good':'snap-neu',rsi>75?'Overbought':rsi>68?'Elevated':rsi>=52?'Momentum':'Weak'),
+    R('Bollinger',(bb*100).toFixed(0)+'%',bb>0.9?'snap-bad':bb>0.75?'snap-warn':bb>=0.35?'snap-good':'snap-bad',bb>0.9?'Overbought':bb>0.75?'Extended':bb>=0.35?'Good zone':'Downtrend'),
+    R('MACD',sig.macd_bullish&&sig.macd_trend==='rising'?'↑↑':sig.macd_bullish?'↑':sig.macd_trend==='falling'?'↓↓':'↓',sig.macd_bullish&&sig.macd_trend==='rising'?'snap-good':sig.macd_bullish?'snap-neu':sig.macd_trend==='falling'?'snap-bad':'snap-warn',sig.macd_bullish?'Bullish':'Bearish'),
+    R('ADX',adx.toFixed(1),adx>30?'snap-good':adx>22?'snap-neu':adx<18?'snap-bad':'snap-warn',adx>30?'Strong':adx>22?'Trending':adx<18?'Choppy':'Mild'),
+    R('Volume',(vr.toFixed(1))+'x',vr>=2?'snap-good':vr>=1.4?'snap-neu':vr<0.6?'snap-bad':'snap-warn',vr>=2?'High':vr>=1.4?'Above avg':vr<0.6?'Thin':'Normal'),
+    R('VWAP',(sig.above_vwap?'+':'')+sig.vwap_dist?.toFixed(2)+'%',sig.above_vwap?'snap-good':'snap-bad',sig.above_vwap?'Above':'Below'),
+    R('EMA',sig.ema_bullish?'9>21':'9<21',sig.ema_bullish?'snap-good':'snap-bad',sig.ema_bullish?'Bullish':'Bearish'),
+    R('RS vs SPY',(rs>=0?'+':'')+rs.toFixed(2)+'%',rs>=1.5?'snap-good':rs>=0?'snap-neu':rs<=-1.5?'snap-bad':'snap-warn',rs>=1.5?'Leader':rs>=0?'In-line':rs<=-1.5?'Laggard':'Weak'),
+    R('Market',(ctx.regime||'neutral').toUpperCase(),ctx.regime==='bull'?'snap-good':ctx.regime==='bear'?'snap-bad':ctx.regime==='caution'?'snap-warn':'snap-neu',ctx.spy_chg!=null?`SPY ${chgStr(ctx.spy_chg)}`:'—'),
+    R('Candle',(sig.candle_pattern||'none').replace(/_/g,' '),sig.bearish_candle?'snap-bad':'snap-good',sig.bearish_candle?'Reversal risk':'Clean'),
+    R('Vol Div.',sig.vol_divergence?'YES':'No',sig.vol_divergence?'snap-bad':'snap-good',sig.vol_divergence?'Diverging':'Aligned'),
+    R('ATR',sig.atr?`$${fmt(sig.atr,3)}`:'—','snap-neu',sig.atr_pct?`${sig.atr_pct.toFixed(2)}% risk`:'—'),
+  ].join('');
+}
+
+// ── Order modal state ─────────────────────────────────────────────────────────
+// (globals already declared: _ordTicker, _ordSide, _ordType, _ordPrice above)
+let _ordBuyMode  = 'shares';   // 'shares' | 'dollars'
+let _ordSellMode = 'partial';  // 'partial' | 'all'
+let _ordOwnedQty = 0;
+let _ordOwnedAvg = 0;
+
+function openOrderModal(ticker, side, accountNumber, price, ownedQty, ownedAvg) {
+  _ordTicker   = ticker;
+  _ordSide     = side;
+  _ordPrice    = price  || 0;
+  _ordOwnedQty = ownedQty || 0;
+  _ordOwnedAvg = ownedAvg  || 0;
+
+  // Header
+  document.getElementById('ord-ticker-h').textContent = ticker;
+  document.getElementById('ord-price-h').textContent  = price ? `$${price.toFixed(2)}` : '$—';
+
+  // Reset all inputs and result
+  ['ord-qty','ord-dollars','ord-sell-qty'].forEach(id => { const el=document.getElementById(id); if(el) el.value=''; });
+  const lp = document.getElementById('ord-limit-price');
+  if(lp) lp.value = price ? price.toFixed(2) : '';
+  document.getElementById('ord-result').style.display = 'none';
+
+  // Account dropdown
+  const sel = document.getElementById('ord-account');
+  sel.innerHTML = '<option value="">Default Account</option>'
+    + _accounts.map(a=>`<option value="${a.account_number}" ${a.account_number===accountNumber?'selected':''}>
+        ${a.label} — $${a.buying_power.toLocaleString(undefined,{maximumFractionDigits:0})} buying power
+      </option>`).join('');
+
+  setOrderSide(side);
+  setBuyMode('shares');
+  setSellMode('partial');
+  setOrderType('market');
+  updateBuyingPower();
+
+  document.getElementById('order-overlay').style.display = 'flex';
+  document.body.style.overflow = 'hidden';
+  setTimeout(()=>{ const f=side==='sell'?'ord-sell-qty':'ord-qty'; document.getElementById(f)?.focus(); }, 120);
+}
+
+function closeOrderModal() {
+  document.getElementById('order-overlay').style.display = 'none';
+  document.body.style.overflow = '';
+}
+
+// ── Buy/Sell toggle ───────────────────────────────────────────────────────────
+function setOrderSide(side) {
+  _ordSide = side;
+  document.getElementById('ord-buy-btn').className  = 'order-side-btn'+(side==='buy' ?' buy-active' :'');
+  document.getElementById('ord-sell-btn').className = 'order-side-btn'+(side==='sell'?' sell-active':'');
+  document.getElementById('ord-buy-panel').style.display  = side==='buy'  ? '' : 'none';
+  document.getElementById('ord-sell-panel').style.display = side==='sell' ? '' : 'none';
+  document.getElementById('ord-confirm-btn').className =
+    `order-confirm-btn ${side==='buy' ? 'buy-mode' : 'sell-mode'}`;
+
+  // Position context for sell
+  const ctx = document.getElementById('ord-pos-ctx');
+  if (side==='sell' && _ordOwnedQty>0) {
+    ctx.style.display='';
+    const pnlPct = _ordOwnedAvg && _ordPrice
+      ? ((_ordPrice-_ordOwnedAvg)/_ordOwnedAvg*100) : null;
+    const pnlColor = pnlPct==null?'var(--text2)':pnlPct>=0?'var(--green)':'var(--red)';
+    ctx.innerHTML=`
+      <div class="order-pos-ctx">
+        <div><div class="pc-label">You Own</div><div class="pc-val">${_ordOwnedQty} shares</div></div>
+        <div><div class="pc-label">Avg Cost</div><div class="pc-val">$${_ordOwnedAvg||'—'}</div></div>
+        <div><div class="pc-label">Unrealised P&L</div>
+          <div class="pc-val" style="color:${pnlColor}">${pnlPct!=null?(pnlPct>=0?'+':'')+pnlPct.toFixed(2)+'%':'—'}</div>
+        </div>
+      </div>`;
+  } else { ctx.style.display='none'; }
+
+  checkIRAWarn();
+  updateEstimate();
+}
+
+// ── Buy mode: shares vs dollar amount ────────────────────────────────────────
+function setBuyMode(mode) {
+  _ordBuyMode = mode;
+  document.getElementById('ord-by-shares-btn').classList.toggle('active', mode==='shares');
+  document.getElementById('ord-by-dollars-btn').classList.toggle('active', mode==='dollars');
+  document.getElementById('ord-shares-row').style.display  = mode==='shares'  ? '' : 'none';
+  document.getElementById('ord-dollars-row').style.display = mode==='dollars' ? '' : 'none';
+  updateEstimate();
+}
+
+// ── Sell mode: partial vs sell-all ────────────────────────────────────────────
+function setSellMode(mode) {
+  _ordSellMode = mode;
+  document.getElementById('ord-partial-btn').classList.toggle('active', mode==='partial');
+  document.getElementById('ord-sellall-btn').classList.toggle('active', mode==='all');
+  document.getElementById('ord-sellqty-row').style.display = mode==='partial' ? '' : 'none';
+  if (mode==='all') document.getElementById('ord-sell-qty').value = _ordOwnedQty || '';
+  updateEstimate();
+}
+
+// ── Order type: market vs limit ───────────────────────────────────────────────
+function setOrderType(type) {
+  _ordType = type;
+  document.getElementById('ord-market-btn').classList.toggle('active', type==='market');
+  document.getElementById('ord-limit-btn').classList.toggle('active',  type==='limit');
+  document.getElementById('ord-limit-row').style.display = type==='limit' ? '' : 'none';
+  document.getElementById('ord-type-note').textContent = type==='market'
+    ? 'Executes at best available price · use GTC if market is closed'
+    : 'Only executes when price reaches your limit';
+  updateEstimate();
+}
+
+// ── Account / buying power ────────────────────────────────────────────────────
+function updateBuyingPower() {
+  const sel  = document.getElementById('ord-account');
+  const acct = _accounts.find(a=>a.account_number===sel.value);
+  const bp   = acct ? `$${acct.buying_power.toLocaleString(undefined,{minimumFractionDigits:2,maximumFractionDigits:2})} buying power` : '';
+  document.getElementById('ord-bp').textContent   = bp;
+  document.getElementById('ord-bp-h').textContent = bp;
+  checkIRAWarn();
+}
+
+function checkIRAWarn() {
+  const sel  = document.getElementById('ord-account');
+  const acct = _accounts.find(a=>a.account_number===sel.value);
+  const isIRA = acct && (acct.type||'').includes('ira');
+  document.getElementById('ord-ira-warn').style.display = (isIRA && _ordSide==='sell') ? '' : 'none';
+}
+
+// ── Live estimate ─────────────────────────────────────────────────────────────
+function updateEstimate() {
+  const price = _ordType==='limit'
+    ? (parseFloat(document.getElementById('ord-limit-price')?.value)||_ordPrice)
+    : _ordPrice;
+
+  let qty=0, total=0, detail='', label='Estimated Total';
+
+  if (_ordSide==='buy') {
+    if (_ordBuyMode==='shares') {
+      qty   = Math.max(0, Math.floor(parseFloat(document.getElementById('ord-qty')?.value)||0));
+      total = qty * price;
+      detail= qty>0 ? `${qty} share${qty!==1?'s':''} × $${price.toFixed(2)}` : '';
+      label = 'You will pay ~';
+    } else {
+      const dollars = parseFloat(document.getElementById('ord-dollars')?.value)||0;
+      qty   = price>0 ? Math.floor(dollars/price) : 0;
+      total = qty * price;
+      const calcEl = document.getElementById('ord-dollars-calc');
+      if (calcEl) calcEl.innerHTML = qty>0
+        ? `<strong>${qty}</strong> whole share${qty!==1?'s':''} at $${price.toFixed(2)} · ${dollars>total?`$${(dollars-total).toFixed(2)} cash not used`:'exact'}`
+        : price>0 ? `Need at least $${price.toFixed(2)} for 1 share` : '';
+      detail= qty>0 ? `$${dollars} → ${qty} share${qty!==1?'s':''}` : '';
+      label = 'You will pay ~';
+    }
+    const confirmBtn = document.getElementById('ord-confirm-btn');
+    confirmBtn.textContent = qty>0
+      ? `Buy ${qty} Share${qty!==1?'s':''} · $${total.toLocaleString(undefined,{minimumFractionDigits:2,maximumFractionDigits:2})}`
+      : 'Buy Shares';
+  } else {
+    qty   = _ordSellMode==='all' ? _ordOwnedQty : Math.max(0, parseFloat(document.getElementById('ord-sell-qty')?.value)||0);
+    total = qty * price;
+    detail= qty>0 ? `${qty} share${qty!==1?'s':''} × $${price.toFixed(2)}` : '';
+    label = 'You will receive ~';
+    const confirmBtn = document.getElementById('ord-confirm-btn');
+    confirmBtn.textContent = qty>0
+      ? `Sell ${qty===_ordOwnedQty?'All ':''}${qty} Share${qty!==1?'s':''} · $${total.toLocaleString(undefined,{minimumFractionDigits:2,maximumFractionDigits:2})}`
+      : 'Sell Shares';
+  }
+
+  document.getElementById('ord-est-label').textContent  = label;
+  document.getElementById('ord-est-detail').textContent = detail;
+  document.getElementById('ord-est').textContent = total>0
+    ? `$${total.toLocaleString(undefined,{minimumFractionDigits:2,maximumFractionDigits:2})}` : '$—';
+}
+
+function _getOrderQty() {
+  if (_ordSide==='sell') return _ordSellMode==='all' ? _ordOwnedQty
+    : Math.max(0, parseFloat(document.getElementById('ord-sell-qty').value)||0);
+  if (_ordBuyMode==='dollars') {
+    const dollars = parseFloat(document.getElementById('ord-dollars').value)||0;
+    return _ordPrice>0 ? Math.floor(dollars/_ordPrice) : 0;
+  }
+  return Math.max(0, Math.floor(parseFloat(document.getElementById('ord-qty').value)||0));
+}
+
+// ── Submit ────────────────────────────────────────────────────────────────────
+async function submitOrder() {
+  const qty        = _getOrderQty();
+  const limitPrice = _ordType==='limit' ? parseFloat(document.getElementById('ord-limit-price').value)||null : null;
+  const acctNum    = document.getElementById('ord-account').value || null;
+  const timeInForce= document.getElementById('ord-gtc-toggle')?.checked ? 'gtc' : 'gfd';
+  const resultEl   = document.getElementById('ord-result');
+  const btn        = document.getElementById('ord-confirm-btn');
+
+  if (qty<=0) return;
+
+  btn.disabled=true; btn.textContent='Placing order...';
+  resultEl.style.display='none';
+
+  try {
+    const res = await fetch(`${API}/api/portfolio/order`, {
+      method:'POST', headers:{'Content-Type':'application/json'},
+      body: JSON.stringify({
+        ticker: _ordTicker, side: _ordSide, order_type: _ordType,
+        quantity: qty, limit_price: limitPrice,
+        account_number: acctNum, time_in_force: timeInForce,
+      }),
+    });
+    const data = await res.json();
+    resultEl.style.display='';
+    if (data.success) {
+      const stateMap = {queued:'⏳ Queued — executes when market opens',
+                        confirmed:'✓ Confirmed', filled:'✓ Filled', cancelled:'⛔ Cancelled'};
+      const stateMsg = stateMap[data.state]||data.state||'submitted';
+      resultEl.className='order-result ok';
+      resultEl.innerHTML=`✓ Order accepted by Robinhood<br>
+        <strong>${_ordSide.toUpperCase()}</strong> ${qty} share${qty!==1?'s':''} of <strong>${_ordTicker}</strong>
+        ${_ordType==='limit'?`@ $${limitPrice} limit`:'at market'} · ${timeInForce.toUpperCase()}<br>
+        <span style="font-size:10px;opacity:.75">State: ${stateMsg} · ID: ${data.order_id||'—'}</span><br>
+        <span style="font-size:10px;color:#8b949e">Check the Robinhood app to confirm execution.</span>`;
+    } else {
+      resultEl.className='order-result err';
+      resultEl.innerHTML=`⛔ ${data.error||'Order rejected by Robinhood'}`;
+    }
+  } catch(e) {
+    resultEl.style.display=''; resultEl.className='order-result err';
+    resultEl.innerHTML='⛔ Network error — is the server running?';
+  } finally {
+    btn.disabled=false; updateEstimate();
+  }
+}
+
+// ── Quick Trade: buy any ticker ───────────────────────────────────────────────
+async function quickTrade() {
+  const ticker = (document.getElementById('qt-ticker').value||'').trim().toUpperCase();
+  if (!ticker) { document.getElementById('qt-ticker').focus(); return; }
+  const st = document.getElementById('qt-status');
+  st.style.display=''; st.innerHTML=`<span style="color:var(--text2)">⏳ Fetching ${ticker}…</span>`;
+  try {
+    const res  = await fetch(`${API}/api/hotpicks/analyze?ticker=${encodeURIComponent(ticker)}`);
+    const data = await res.json();
+    if (!res.ok||data.error) { st.innerHTML=`<span style="color:var(--red)">⛔ ${data.error||'Not found'}</span>`; return; }
+    st.style.display='none';
+    document.getElementById('qt-ticker').value='';
+    openOrderModal(ticker,'buy','', data.signals?.price||0, 0, 0);
+  } catch(e) { st.innerHTML=`<span style="color:var(--red)">⛔ Network error</span>`; }
+}
+
+// ── Utilities ─────────────────────────────────────────────────────────────────
+function fmt(n,dp=2){if(n==null)return'—';return n>=1000?n.toFixed(0):n.toFixed(dp);}
+function chgClass(v){return v>0?'chg-pos':v<0?'chg-neg':'chg-neu';}
+function chgStr(v){return v==null?'—':(v>=0?'+':'')+v.toFixed(2)+'%';}
+function scoreColor(s){if(s>=5)return{color:'var(--green)'};if(s>=2.5)return{color:'#6ee77a'};if(s>=0)return{color:'var(--yellow)'};return{color:'var(--red)'};}
+function showAlert(id,type,msg){
+  const el=document.getElementById(id); el.style.display='';
+  el.className=`alert alert-${type==='success'?'success':type==='error'?'error':'info'}`;
+  el.textContent=msg;
+}
+
+// ── Boot ──────────────────────────────────────────────────────────────────────
+(async()=>{
+  try{
+    const res=await fetch(`${API}/api/portfolio/status`);
+    const d=await res.json();
+    if(d.logged_in){
+      showAlert('rh-alert','success','✓ Already connected to Robinhood');
+      _isRHConnected=true;
+      await loadRHPositions();
+    }
+    if(!d.robinhood_available){
+      showAlert('rh-alert','info','robin_stocks not installed. Run: pip install robin_stocks — or use Manual Entry tab.');
+    }
+  }catch(e){}
+})();
+</script>
+
+<!-- ═══ GLOSSARY PANEL (shared) ══════════════════════════════════════════════ -->
+<div id="glossary-overlay" onclick="if(event.target===this)closeGlossary()"
+     style="display:none;position:fixed;inset:0;z-index:9500;background:rgba(0,0,0,.75);
+            backdrop-filter:blur(4px);align-items:flex-start;justify-content:center;
+            padding:24px 16px;overflow-y:auto;">
+  <div style="background:#161b22;border:1px solid #30363d;border-radius:14px;
+              width:100%;max-width:680px;position:relative;box-shadow:0 24px 80px rgba(0,0,0,.7);
+              animation:slideUp .2s ease;">
+    <button onclick="closeGlossary()"
+            style="position:absolute;top:14px;right:14px;background:#1c2333;border:1px solid #30363d;
+                   color:#8b949e;font-family:inherit;font-size:11px;padding:5px 12px;
+                   border-radius:6px;cursor:pointer;">✕ Close</button>
+    <div style="padding:22px 24px 16px;border-bottom:1px solid #30363d;">
+      <div style="font-size:20px;font-weight:900">📖 Signal Glossary</div>
+      <div style="font-size:11px;color:#8b949e;margin-top:4px">Plain-English explanations of every indicator shown on this page</div>
+    </div>
+    <div id="glossary-body" style="padding:20px 24px;display:flex;flex-direction:column;gap:8px;"></div>
+  </div>
+</div>
+
+<script>
+const GLOSSARY = [
+  { cat: "Price & Trend" },
+  { term:"RSI",                short:"Relative Strength Index",
+    what:"Measures how overbought or oversold a stock is on a 0–100 scale.",
+    read:"Above 70 → stock may be running too hot and due for a pullback. Below 30 → stock may be oversold and ready to bounce. Sweet spot for a buy: 52–68.",
+    icon:"📊" },
+  { term:"MACD",               short:"Moving Average Convergence/Divergence",
+    what:"Compares two moving averages to show whether momentum is building or fading.",
+    read:"↑↑ Bullish & Rising = strong buy signal. ↑ Bullish = mild buy. ↓ Bearish = caution. ↓↓ Bearish & Falling = strong sell signal.",
+    icon:"📈" },
+  { term:"EMA 9 / EMA 21",     short:"Exponential Moving Averages",
+    what:"Smoothed average prices over the last 9 and 21 candles, weighted toward recent prices.",
+    read:"EMA 9 above EMA 21 = short-term momentum is up (bullish). EMA 9 below EMA 21 = momentum is down (bearish). Think of it as the stock's recent direction.",
+    icon:"〰" },
+  { term:"ADX",                short:"Average Directional Index",
+    what:"Measures how strongly a trend is moving — NOT which direction, just how strong.",
+    read:"Above 30 = strong trend (good for momentum trades). 22–30 = moderate trend. Below 18 = choppy, no clear direction — riskier to trade.",
+    icon:"💪" },
+  { cat: "Price Levels" },
+  { term:"VWAP",               short:"Volume Weighted Average Price",
+    what:"The average price a stock has traded at, weighted by volume. Institutional traders use it as a benchmark.",
+    read:"Price above VWAP = buyers in control, bullish. Price below VWAP = sellers in control, bearish. A breakout above VWAP on high volume is a strong buy signal.",
+    icon:"⚖" },
+  { term:"Bollinger Bands",    short:"Volatility envelope around price",
+    what:"Three lines: a middle average, an upper band, and a lower band. The bands widen when the stock is volatile and tighten when calm.",
+    read:"BB% near 0% = price is at the bottom band (oversold zone). BB% near 100% = price is at the top band (overbought, risk of reversal). 35–75% is the healthy buy zone.",
+    icon:"🎯" },
+  { term:"ATR",                short:"Average True Range",
+    what:"The average distance the price moves up or down in a single candle period — a measure of volatility.",
+    read:"High ATR = bigger price swings, more risk and more reward. Used to set stop losses: Stop = Entry − 1.2×ATR. Target = Entry + 2.5×ATR. Bigger ATR = wider stop.",
+    icon:"📏" },
+  { cat: "Volume" },
+  { term:"Volume Ratio",       short:"Today's volume vs. average",
+    what:"Compares how many shares are being traded today vs. the recent average.",
+    read:"2×+ = massive interest, confirms the move. 1.4–2× = above average, healthy. Below 0.6× = very thin, few people are trading — moves are less reliable.",
+    icon:"📦" },
+  { term:"Volume Divergence",  short:"Price rising but volume falling",
+    what:"When price keeps going up but fewer and fewer people are participating.",
+    read:"A warning sign. If fewer people are buying even as price climbs, the rally may be losing steam and could reverse. Look for YES = caution.",
+    icon:"⚡" },
+  { cat: "Candle Patterns (what the last price bar looks like)" },
+  { term:"Shooting Star",      short:"Bearish reversal candle",
+    what:"A candle with a small body at the bottom and a long wick on top. It means the price shot up but got sold off hard by end of the period.",
+    read:"Danger sign at the top of a rally. The market tried to go higher but sellers pushed it back down.",
+    icon:"💫" },
+  { term:"Bearish Engulfing",  short:"Red candle swallows the previous green one",
+    what:"Yesterday's green candle is completely covered by today's larger red candle.",
+    read:"Strong reversal signal. Sellers took over completely. High danger — often signals a multi-day drop incoming.",
+    icon:"🔴" },
+  { term:"Doji",               short:"Indecision candle — open ≈ close",
+    what:"Open and close prices are nearly the same, creating a cross or plus shape.",
+    read:"The market is undecided. After a strong run-up, a Doji can signal a reversal. Needs confirmation from the next candle.",
+    icon:"✚" },
+  { cat: "Market Context" },
+  { term:"Market Regime",      short:"Overall market direction right now",
+    what:"Determined by SPY (S&P 500 ETF) and QQQ (Nasdaq ETF) intraday performance.",
+    read:"BULL = SPY & QQQ both up — good environment for buying. CAUTION = mixed signals. BEAR = both down — high-risk day, even good stocks can fall.",
+    icon:"🌡" },
+  { term:"RS vs SPY",          short:"Relative Strength versus the S&P 500",
+    what:"How this stock is performing compared to the overall market today.",
+    read:"+1.5% or more = stock is a market leader, outperforming — strong signal. Near 0% = moving with market. Negative = lagging, even when market is up — a warning sign.",
+    icon:"🏆" },
+  { cat: "Scores & Grades" },
+  { term:"Score",              short:"Composite signal score (roughly −12 to +12)",
+    what:"A number that adds up all bullish signals (positive points) and bearish signals (negative points).",
+    read:"+5 or more = strong buy setup. 0 to +5 = mild positive. Negative = bearish signals outweigh bullish. This is the main number driving the grade.",
+    icon:"🔢" },
+  { term:"Grade",              short:"Final verdict on the setup",
+    what:"STRONG BUY / BUY / WATCH / NEUTRAL / SKIP — based on the score and danger count.",
+    read:"STRONG BUY = multiple aligned signals, high confidence. BUY = positive setup. WATCH = wait for confirmation. NEUTRAL = no clear edge. SKIP = multiple risk factors, avoid.",
+    icon:"🏷" },
+  { term:"Danger Count",       short:"Number of risk red flags",
+    what:"Counts bearish signals: overbought RSI, bearish candle, volume divergence, bad market, etc.",
+    read:"0–1 = clean. 2–3 = caution, trade smaller. 4+ = hard SKIP — the engine overrides the grade to avoid the trade regardless of score.",
+    icon:"⚠" },
+  { cat: "Portfolio Recommendations" },
+  { term:"ADD MORE",           short:"Strong signal — consider increasing your position",
+    what:"The stock shows STRONG BUY signals today. Your existing position is well-placed.",
+    read:"Only add if you have room in your risk budget. Don't go over 5–10% of your portfolio in one stock.",
+    icon:"✅" },
+  { term:"HOLD & BUY",         short:"Positive setup — hold and look for an entry to add",
+    what:"BUY grade with a healthy setup. Your position looks fine.",
+    read:"You can hold comfortably. Consider adding a small amount on a dip to VWAP.",
+    icon:"📈" },
+  { term:"TRIM 25–50%",        short:"Overbought with a profit — lock in some gains",
+    what:"RSI is very high and price is near the top Bollinger Band while you're in profit.",
+    read:"Sell 25–50% of your shares to lock in gains. Let the rest ride with a raised stop.",
+    icon:"✂" },
+  { term:"TAKE PROFIT",        short:"Bearish signals while you're in profit — exit",
+    what:"The stock is showing danger signs but you still have a gain. Better to exit now than give it back.",
+    read:"Sell the position. Book the profit. Re-enter later if signals improve.",
+    icon:"💰" },
+  { term:"CUT LOSS",           short:"Bearish signals and you're down — exit to stop bleeding",
+    what:"Multiple danger signals AND your position is underwater.",
+    read:"Exit the trade. Protect remaining capital. A small loss today is better than a bigger loss tomorrow.",
+    icon:"⛔" },
+  { term:"WATCH & WAIT",       short:"Mixed signals — don't average down yet",
+    what:"WATCH grade with your position currently at a loss.",
+    read:"Set a tight stop loss. Do NOT buy more ('averaging down') until signals turn bullish.",
+    icon:"👀" },
+];
+
+function openGlossary() {
+  const body = document.getElementById('glossary-body');
+  body.innerHTML = GLOSSARY.map(g => {
+    if (g.cat) return `
+      <div style="font-size:9px;font-weight:700;text-transform:uppercase;letter-spacing:1px;
+                  color:#8b949e;padding:8px 0 2px;border-top:1px solid #30363d;margin-top:4px">${g.cat}</div>`;
+    return `
+      <div style="background:#1c2333;border:1px solid #30363d;border-radius:8px;padding:12px 14px;display:grid;
+                  grid-template-columns:auto 1fr;gap:0 12px;align-items:start;">
+        <div style="font-size:20px;grid-row:1/4;padding-top:2px">${g.icon}</div>
+        <div>
+          <span style="font-size:13px;font-weight:800;color:#e6edf3">${g.term}</span>
+          <span style="font-size:10px;color:#8b949e;margin-left:8px">${g.short}</span>
+        </div>
+        <div style="font-size:11px;color:#8b949e;line-height:1.5;margin-top:3px">${g.what}</div>
+        <div style="font-size:11px;color:#58a6ff;background:#0d1117;border:1px solid #21262d;
+                    border-radius:5px;padding:5px 9px;margin-top:6px;line-height:1.5">
+          📌 ${g.read}</div>
+      </div>`;
+  }).join('');
+  document.getElementById('glossary-overlay').style.display = 'flex';
+  document.body.style.overflow = 'hidden';
+}
+
+function closeGlossary() {
+  document.getElementById('glossary-overlay').style.display = 'none';
+  document.body.style.overflow = '';
+}
+
+document.addEventListener('keydown', e => {
+  if (e.key === 'Escape' && document.getElementById('glossary-overlay').style.display === 'flex') {
+    closeGlossary();
+  }
+});
+</script>
+</body>
+</html>

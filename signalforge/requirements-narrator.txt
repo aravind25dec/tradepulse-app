@@ -1,0 +1,11 @@
+# Only needed on the machine that fine-tunes the narrator model (Phase 3, narrator/train_narrator.py).
+# Not required to run data collection, training, or serving predictions — the fine-tuned model
+# is served through Ollama at inference time, not through this Python environment.
+torch>=2.2.0
+transformers>=4.40.0
+datasets>=2.19.0
+peft>=0.10.0
+accelerate>=0.30.0
+sentencepiece>=0.2.0
+gguf>=0.10.0
+protobuf>=4.25.0

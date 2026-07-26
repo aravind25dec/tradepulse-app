@@ -1,0 +1,9 @@
+fastapi==0.111.0
+uvicorn[standard]==0.29.0
+httpx==0.27.0
+pandas==2.2.3
+numpy==2.1.3
+anthropic>=0.45.0
+python-dotenv==1.0.1
+robin_stocks>=2.1.0
+langchain-core>=0.3.0

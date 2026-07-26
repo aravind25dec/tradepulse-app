@@ -2,3 +2,14 @@ node_modules/
 .env
 __pycache__/
 *.pyc
+venv/
+
+# SignalForge — generated data/models, not source (regenerate via data/fetch_history.py + train/train_classifier.py)
+signalforge/data/raw/
+signalforge/data/processed/
+signalforge/models/registry/
+signalforge/narrator/dataset/
+signalforge/narrator/gguf/
+signalforge/narrator/merged/
+signalforge/narrator/.llama_cpp/
+signalforge/narrator/*.log

@@ -1,0 +1,1174 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8"/>
+  <meta name="viewport" content="width=device-width,initial-scale=1.0"/>
+  <title>TradePulse Trader</title>
+  <style>
+    :root{
+      --bg:#0d1117;--bg2:#161b22;--bg3:#1c2333;--border:#30363d;
+      --text:#e6edf3;--text2:#8b949e;
+      --green:#3fb950;--green-dim:#1a3a24;
+      --red:#f85149;--red-dim:#3a1a1a;
+      --yellow:#d29922;--yellow-dim:#3a2e10;
+      --blue:#58a6ff;--blue-dim:#0d1f3c;
+      --purple:#bc8cff;
+      --font:'SF Mono','Fira Code','Cascadia Code',monospace;
+    }
+    *{box-sizing:border-box;margin:0;padding:0;}
+    body{background:var(--bg);color:var(--text);font-family:var(--font);
+         font-size:12px;height:100vh;display:flex;flex-direction:column;overflow:hidden;}
+
+    /* ── Header ── */
+    header{background:var(--bg2);border-bottom:1px solid var(--border);
+           padding:8px 16px;display:flex;align-items:center;gap:12px;flex-shrink:0;}
+    .logo{font-size:14px;font-weight:700;color:var(--green);}
+    .logo span{color:var(--text2);font-weight:400;}
+    .gap{flex:1;}
+    .acct-val{font-size:13px;font-weight:700;}
+    .acct-sub{font-size:10px;color:var(--text2);}
+    .auth-pill{padding:3px 10px;border-radius:12px;font-size:11px;font-weight:700;
+               cursor:pointer;border:1px solid;}
+    .auth-pill.in  {background:var(--green-dim);border-color:var(--green);color:var(--green);}
+    .auth-pill.warn{background:var(--yellow-dim);border-color:var(--yellow);color:var(--yellow);}
+    .auth-pill.out {background:var(--bg3);border-color:var(--border);color:var(--text2);}
+    nav a{color:var(--text2);text-decoration:none;font-size:11px;padding:4px 8px;
+          border-radius:5px;font-weight:600;}
+    nav a:hover{color:var(--text);background:var(--bg3);}
+
+    /* ── Layout ── */
+    #layout{flex:1;display:grid;
+            grid-template-columns:240px 1fr 280px;
+            grid-template-rows:1fr 190px;
+            overflow:hidden;}
+
+    /* ────────────────────────────────────────────────────────
+       LEFT PANEL
+    ──────────────────────────────────────────────────────── */
+    #left-panel{grid-row:1/3;background:var(--bg2);border-right:1px solid var(--border);
+                display:flex;flex-direction:column;overflow:hidden;}
+
+    /* Watchlist section (compact top) */
+    #wl-section{display:flex;flex-direction:column;flex-shrink:0;}
+    .panel-hdr{padding:8px 12px;border-bottom:1px solid var(--border);font-size:11px;
+               font-weight:700;color:var(--text2);text-transform:uppercase;
+               letter-spacing:.5px;display:flex;align-items:center;gap:6px;flex-shrink:0;}
+    .panel-hdr .cnt{margin-left:auto;font-size:10px;color:var(--text2);font-weight:400;}
+    .panel-hdr .btn-refresh{margin-left:auto;background:none;border:none;color:var(--text2);
+                            cursor:pointer;font-size:13px;padding:0 2px;}
+    .panel-hdr .btn-refresh:hover{color:var(--text);}
+    #wl-body{max-height:175px;overflow-y:auto;}
+    #wl-body::-webkit-scrollbar{width:3px;}
+    #wl-body::-webkit-scrollbar-thumb{background:var(--border);}
+    .wl-row{display:flex;align-items:center;padding:7px 12px;cursor:pointer;
+            border-bottom:1px solid var(--bg3);transition:background .1s;user-select:none;}
+    .wl-row:hover,.wl-row.active{background:var(--bg3);}
+    .wl-row.active{border-left:2px solid var(--blue);}
+    .wl-ticker{font-weight:700;font-size:12px;width:54px;}
+    .wl-price{font-size:12px;font-weight:700;flex:1;text-align:right;}
+    .wl-chg{font-size:10px;font-weight:700;width:50px;text-align:right;}
+    .wl-del{color:var(--text2);margin-left:6px;cursor:pointer;opacity:0;font-size:13px;}
+    .wl-row:hover .wl-del{opacity:.6;}
+    .wl-del:hover{opacity:1!important;color:var(--red);}
+    .up{color:var(--green)!important;} .dn{color:var(--red)!important;} .neu{color:var(--text2)!important;}
+    #add-ticker-row{padding:6px 10px;border-bottom:1px solid var(--border);
+                    display:flex;gap:6px;}
+    #add-ticker-inp{flex:1;background:var(--bg3);border:1px solid var(--border);
+                    color:var(--text);font-family:var(--font);font-size:11px;
+                    padding:4px 8px;border-radius:5px;outline:none;text-transform:uppercase;}
+    #add-ticker-inp:focus{border-color:var(--blue);}
+    .btn-sm{padding:3px 9px;border-radius:5px;border:1px solid;font-size:10px;
+            font-weight:700;font-family:var(--font);cursor:pointer;transition:all .12s;}
+    .btn-add{background:var(--blue-dim);border-color:var(--blue);color:var(--blue);}
+    .btn-add:hover{background:var(--blue);color:#000;}
+
+    /* Holdings section (grows to fill rest) */
+    #holdings-section{flex:1;min-height:0;display:flex;flex-direction:column;
+                      border-top:2px solid var(--border);}
+    #holdings-body{flex:1;overflow-y:auto;}
+    #holdings-body::-webkit-scrollbar{width:3px;}
+    #holdings-body::-webkit-scrollbar-thumb{background:var(--border);}
+    .acct-group{border-bottom:1px solid var(--bg3);}
+    .acct-hdr{padding:5px 12px;background:var(--bg3);font-size:9px;font-weight:700;
+              color:var(--text2);text-transform:uppercase;letter-spacing:.6px;
+              display:flex;align-items:center;gap:5px;position:sticky;top:0;z-index:1;}
+    .acct-cnt{background:var(--border);border-radius:8px;padding:0 5px;color:var(--text);}
+    .acct-equity{margin-left:auto;font-size:9px;color:var(--text2);}
+    .holding-row{padding:6px 12px;cursor:pointer;border-bottom:1px solid var(--bg3);
+                 transition:background .1s;}
+    .holding-row:hover{background:var(--bg3);}
+    .holding-row.active{background:var(--bg3);border-left:2px solid var(--blue);}
+    .holding-top{display:flex;align-items:center;gap:4px;}
+    .holding-ticker{font-weight:700;font-size:12px;flex:1;}
+    .holding-qty{font-size:10px;color:var(--text2);}
+    .holding-pct{font-size:10px;font-weight:700;min-width:44px;text-align:right;}
+    .holding-bot{display:flex;justify-content:space-between;margin-top:2px;font-size:10px;}
+    .holding-price{color:var(--text);}
+    .holding-val{color:var(--text2);}
+    .no-holdings{padding:16px 12px;color:var(--text2);font-size:11px;text-align:center;}
+
+    /* ────────────────────────────────────────────────────────
+       CENTER — top (chart + dashboard tabs)
+    ──────────────────────────────────────────────────────── */
+    #center-top{grid-column:2;grid-row:1;display:flex;flex-direction:column;
+                background:var(--bg);border-bottom:1px solid var(--border);overflow:hidden;}
+    .center-tabs{background:var(--bg2);border-bottom:1px solid var(--border);
+                 display:flex;align-items:center;padding:0 12px;flex-shrink:0;gap:2px;}
+    .ctab{padding:8px 14px;background:none;border:none;border-bottom:2px solid transparent;
+          color:var(--text2);font-family:var(--font);font-size:11px;font-weight:700;
+          cursor:pointer;transition:all .12s;margin-bottom:-1px;}
+    .ctab.active{color:var(--blue);border-bottom-color:var(--blue);}
+    .ctab:hover:not(.active){color:var(--text);}
+
+    /* Chart view */
+    #chart-view{flex:1;padding:14px 18px;display:flex;flex-direction:column;gap:8px;
+                overflow:hidden;}
+    #detail-empty{display:flex;align-items:center;justify-content:center;
+                  height:100%;color:var(--text2);font-size:13px;}
+    #detail-content{display:none;flex-direction:column;height:100%;gap:6px;}
+    .det-top{display:flex;align-items:baseline;gap:12px;flex-shrink:0;}
+    .det-ticker{font-size:22px;font-weight:700;}
+    .det-price{font-size:26px;font-weight:700;}
+    .det-chg{font-size:13px;font-weight:700;}
+    #position-bar{background:var(--bg2);border:1px solid var(--border);border-radius:5px;
+                  padding:5px 10px;font-size:11px;color:var(--text2);flex-shrink:0;display:none;}
+    .det-meta{display:flex;gap:14px;font-size:11px;color:var(--text2);flex-shrink:0;flex-wrap:wrap;}
+    .det-meta-box{background:var(--bg2);border:1px solid var(--border);border-radius:5px;
+                  padding:4px 10px;display:flex;gap:6px;align-items:center;}
+    .dm-lbl{font-size:9px;color:var(--text2);}
+    .dm-val{font-weight:700;}
+    .span-btns{display:flex;gap:3px;margin-left:auto;}
+    .span-btn{padding:2px 7px;border-radius:4px;border:1px solid var(--border);
+              background:var(--bg3);color:var(--text2);font-size:10px;font-weight:700;
+              font-family:var(--font);cursor:pointer;}
+    .span-btn.active{border-color:var(--blue);color:var(--blue);background:var(--blue-dim);}
+    #chart-wrap{flex:1;min-height:0;position:relative;}
+    #sparkline{width:100%;height:100%;}
+    .spark-label{position:absolute;font-size:9px;color:var(--text2);}
+    .spark-label.lo{bottom:2px;} .spark-label.hi{top:2px;}
+
+    /* Dashboard view */
+    #dashboard-view{flex:1;overflow-y:auto;display:none;padding:12px;}
+    #dashboard-view::-webkit-scrollbar{width:4px;}
+    #dashboard-view::-webkit-scrollbar-thumb{background:var(--border);}
+    #dash-header{display:flex;align-items:center;gap:8px;margin-bottom:12px;flex-shrink:0;}
+    #dash-summary{font-size:11px;color:var(--text2);}
+    #dash-grid{display:grid;grid-template-columns:repeat(auto-fill,minmax(170px,1fr));gap:10px;}
+    .dash-card{background:var(--bg2);border:1px solid var(--border);border-radius:8px;
+               padding:11px;cursor:pointer;transition:border-color .15s;}
+    .dash-card:hover{border-color:var(--blue);}
+    .dash-card-hdr{display:flex;justify-content:space-between;align-items:center;margin-bottom:5px;}
+    .dash-ticker{font-weight:700;font-size:14px;}
+    .dash-acct-badge{font-size:8px;font-weight:700;text-transform:uppercase;letter-spacing:.4px;
+                     background:var(--bg3);border-radius:3px;padding:1px 5px;color:var(--text2);}
+    .dash-acct-badge.brokerage{color:var(--blue);}
+    .dash-acct-badge.ira{color:var(--purple);}
+    .dash-acct-badge.roth{color:var(--green);}
+    .dash-price{font-size:15px;font-weight:700;margin-bottom:2px;}
+    .dash-chg{font-size:10px;margin-left:3px;}
+    .dash-stats{display:flex;justify-content:space-between;font-size:10px;
+                color:var(--text2);margin-bottom:4px;}
+    .dash-pl{font-size:10px;font-weight:700;margin-bottom:7px;}
+    .dash-svg{width:100%;height:44px;display:block;}
+    .dash-loading{display:flex;align-items:center;justify-content:center;
+                  height:44px;color:var(--text2);font-size:9px;}
+    #dash-empty{padding:40px;text-align:center;color:var(--text2);font-size:13px;}
+
+    /* ── Order History (bottom center) ── */
+    #order-history{grid-column:2;grid-row:2;background:var(--bg2);
+                   border-right:1px solid var(--border);display:flex;flex-direction:column;overflow:hidden;}
+    #hist-body{flex:1;overflow-y:auto;}
+    #hist-body::-webkit-scrollbar{width:3px;}
+    #hist-body::-webkit-scrollbar-thumb{background:var(--border);}
+    .hist-row{display:grid;grid-template-columns:78px 42px 42px 52px 62px 68px 1fr;
+              gap:4px;padding:4px 12px;border-bottom:1px solid var(--bg3);
+              font-size:10px;align-items:center;}
+    .hist-row:hover{background:var(--bg3);}
+    .hist-hdr{color:var(--text2);font-weight:700;font-size:9px;text-transform:uppercase;
+              background:var(--bg3);border-bottom:1px solid var(--border);}
+    .state-filled{color:var(--green);}
+    .state-cancelled,.state-failed{color:var(--red);}
+    .state-pending,.state-confirmed,.state-queued{color:var(--yellow);}
+
+    /* ── Order Panel ── */
+    #order-panel{grid-column:3;grid-row:1/3;background:var(--bg2);
+                 border-left:1px solid var(--border);display:flex;flex-direction:column;overflow:hidden;}
+    .order-section{padding:10px 13px;border-bottom:1px solid var(--border);}
+    .side-toggle{display:flex;border-radius:6px;overflow:hidden;
+                 border:1px solid var(--border);margin-bottom:9px;}
+    .side-btn{flex:1;padding:7px;text-align:center;font-weight:700;font-size:12px;
+              cursor:pointer;transition:all .15s;border:none;font-family:var(--font);}
+    .side-btn.buy{background:var(--bg3);color:var(--text2);}
+    .side-btn.buy.active{background:var(--green);color:#000;}
+    .side-btn.sell{background:var(--bg3);color:var(--text2);}
+    .side-btn.sell.active{background:var(--red);color:#fff;}
+    .form-row{margin-bottom:7px;}
+    .form-label{font-size:10px;color:var(--text2);font-weight:700;text-transform:uppercase;
+                letter-spacing:.4px;margin-bottom:3px;}
+    .form-inp{width:100%;background:var(--bg3);border:1px solid var(--border);
+              color:var(--text);font-family:var(--font);font-size:12px;padding:5px 8px;
+              border-radius:5px;outline:none;transition:border .12s;}
+    .form-inp:focus{border-color:var(--blue);}
+    select.form-inp{cursor:pointer;}
+    .form-grid{display:grid;grid-template-columns:1fr 1fr;gap:5px;}
+    .tif-row{display:flex;gap:3px;flex-wrap:wrap;}
+    .tif-btn{padding:3px 7px;border-radius:9px;border:1px solid var(--border);
+             background:var(--bg3);color:var(--text2);font-size:10px;font-weight:700;
+             font-family:var(--font);cursor:pointer;}
+    .tif-btn.active{border-color:var(--blue);color:var(--blue);background:var(--blue-dim);}
+    .place-btn{width:100%;padding:9px;border-radius:6px;border:none;font-family:var(--font);
+               font-size:12px;font-weight:700;cursor:pointer;margin-top:4px;transition:all .15s;}
+    .place-btn.buy{background:var(--green);color:#000;}
+    .place-btn.buy:hover{filter:brightness(1.15);}
+    .place-btn.sell{background:var(--red);color:#fff;}
+    .place-btn.sell:hover{filter:brightness(1.1);}
+    .place-btn:disabled{opacity:.4;cursor:default;}
+    #order-msg{font-size:11px;margin-top:5px;padding:4px 8px;border-radius:5px;display:none;}
+    .msg-ok {background:var(--green-dim);color:var(--green);border:1px solid var(--green);}
+    .msg-err{background:var(--red-dim); color:var(--red);  border:1px solid var(--red);}
+    #open-orders-list{flex:1;overflow-y:auto;}
+    #open-orders-list::-webkit-scrollbar{width:3px;}
+    #open-orders-list::-webkit-scrollbar-thumb{background:var(--border);}
+    .open-row{padding:5px 12px;border-bottom:1px solid var(--bg3);
+              display:grid;grid-template-columns:44px 32px 58px 1fr 20px;
+              gap:4px;align-items:center;font-size:10px;}
+    .open-row:hover{background:var(--bg3);}
+    .open-type{color:var(--text2);font-size:9px;text-transform:uppercase;}
+    .open-price{color:var(--yellow);}
+    .cancel-btn{background:none;border:none;color:var(--text2);cursor:pointer;
+                font-size:13px;padding:0;}
+    .cancel-btn:hover{color:var(--red);}
+    .no-orders{padding:12px;color:var(--text2);font-size:11px;text-align:center;}
+
+    /* ── MCP Setup Modal ── */
+    #mcp-modal{display:none;position:fixed;inset:0;background:rgba(0,0,0,.75);
+               z-index:100;align-items:center;justify-content:center;}
+    #mcp-modal.show{display:flex;}
+    .modal-box{background:var(--bg2);border:1px solid var(--border);border-radius:10px;
+               padding:24px;width:460px;}
+    .modal-title{font-size:15px;font-weight:700;margin-bottom:4px;}
+    .modal-sub{font-size:11px;color:var(--text2);margin-bottom:16px;}
+    .modal-step{background:var(--bg3);border:1px solid var(--border);border-radius:6px;
+                padding:10px 12px;margin-bottom:10px;font-size:11px;}
+    .modal-step .step-num{color:var(--blue);font-weight:700;margin-bottom:4px;}
+    .modal-code{background:#0d1117;border:1px solid var(--border);border-radius:4px;
+                padding:5px 10px;font-family:var(--font);font-size:10px;
+                color:var(--green);margin-top:5px;word-break:break-all;}
+    .modal-refresh{width:100%;padding:8px;background:var(--blue-dim);color:var(--blue);
+                   border:1px solid var(--blue);border-radius:6px;font-family:var(--font);
+                   font-size:12px;font-weight:700;cursor:pointer;margin-top:12px;}
+    .modal-refresh:hover{background:var(--blue);color:#000;}
+    .modal-close{width:100%;padding:8px;background:var(--bg3);color:var(--text2);
+                 border:1px solid var(--border);border-radius:6px;font-family:var(--font);
+                 font-size:12px;font-weight:700;cursor:pointer;margin-top:5px;}
+    .modal-close:hover{color:var(--text);}
+
+    /* ── Confirm Order Modal ── */
+    #confirm-modal{display:none;position:fixed;inset:0;background:rgba(0,0,0,.75);
+                   z-index:101;align-items:center;justify-content:center;}
+    #confirm-modal.show{display:flex;}
+    .confirm-box{background:var(--bg2);border:1px solid var(--border);border-radius:10px;
+                 padding:24px;width:300px;}
+    .confirm-title{font-size:14px;font-weight:700;margin-bottom:10px;}
+    .confirm-detail{font-size:12px;color:var(--text2);margin-bottom:4px;}
+    .confirm-detail strong{color:var(--text);}
+    .confirm-warning{margin-top:10px;padding:8px 10px;background:var(--yellow-dim);
+                     border:1px solid var(--yellow);border-radius:5px;
+                     font-size:11px;color:var(--yellow);}
+    .confirm-btns{display:flex;gap:8px;margin-top:14px;}
+    .confirm-btns button{flex:1;padding:9px;border-radius:6px;border:none;
+                         font-family:var(--font);font-size:12px;font-weight:700;cursor:pointer;}
+    #confirm-cancel{background:var(--bg3);color:var(--text2);}
+    #confirm-place{background:var(--green);color:#000;}
+    #confirm-place.sell{background:var(--red);color:#fff;}
+  </style>
+</head>
+<body>
+
+<!-- ── MCP Setup Modal ── -->
+<div id="mcp-modal">
+  <div class="modal-box">
+    <div class="modal-title">Connect Robinhood via MCP</div>
+    <div class="modal-sub">Follow these steps — no username or password stored here.</div>
+    <div id="mcp-step-cli" class="modal-step" style="display:none;">
+      <div class="step-num">Step 1 — Install Claude Code CLI</div>
+      <div style="color:var(--text2);">In a terminal:</div>
+      <div class="modal-code">npm install -g @anthropic-ai/claude-code</div>
+      <div style="color:var(--text2);margin-top:5px;">Then sign in once:</div>
+      <div class="modal-code">claude</div>
+    </div>
+    <div id="mcp-step-rh" class="modal-step">
+      <div class="step-num" id="mcp-step-num">Register Robinhood MCP</div>
+      <div style="color:var(--text2);">In a terminal:</div>
+      <div class="modal-code">claude mcp add robinhood-trading --transport http https://agent.robinhood.com/mcp/trading</div>
+      <div style="color:var(--text2);margin-top:5px;">Auth happens in your browser via Claude Pro — no credentials stored locally.</div>
+    </div>
+    <button class="modal-refresh" onclick="checkMCP();closeMcpModal()">↻ Check Again</button>
+    <button class="modal-close"   onclick="closeMcpModal()">Close</button>
+  </div>
+</div>
+
+<!-- ── Confirm Order Modal ── -->
+<div id="confirm-modal">
+  <div class="confirm-box">
+    <div class="confirm-title" id="confirm-title">Confirm Order</div>
+    <div id="confirm-detail"></div>
+    <div class="confirm-warning">⚠ This places a REAL order on your Robinhood account.</div>
+    <div class="confirm-btns">
+      <button id="confirm-cancel" onclick="closeConfirm()">Cancel</button>
+      <button id="confirm-place"  onclick="executeOrder()">Place Order</button>
+    </div>
+  </div>
+</div>
+
+<!-- ── Header ── -->
+<header>
+  <div class="logo">TradePulse <span>Trader</span></div>
+  <div style="display:flex;flex-direction:column;gap:1px;">
+    <div class="acct-val" id="acct-val">—</div>
+    <div class="acct-sub" id="acct-sub">Portfolio value</div>
+  </div>
+  <div class="gap"></div>
+  <nav style="display:flex;gap:4px;">
+    <a href="http://localhost:8003">Hot Picks</a>
+    <a href="http://localhost:8007">Analyst</a>
+    <a href="http://localhost:8008">Local AI</a>
+  </nav>
+  <div id="auth-btn" class="auth-pill out" onclick="toggleMcpInfo()">⚫ Checking…</div>
+</header>
+
+<!-- ── Main Layout ── -->
+<div id="layout">
+
+  <!-- ═══════════════════ LEFT PANEL ═══════════════════ -->
+  <div id="left-panel">
+
+    <!-- Watchlist -->
+    <div id="wl-section">
+      <div class="panel-hdr">
+        Watchlist <span class="cnt" id="wl-cnt"></span>
+      </div>
+      <div id="wl-body"></div>
+      <div id="add-ticker-row">
+        <input id="add-ticker-inp" placeholder="Add ticker…" maxlength="8"
+               onkeydown="if(event.key==='Enter')addTicker()"/>
+        <button class="btn-sm btn-add" onclick="addTicker()">+</button>
+      </div>
+    </div>
+
+    <!-- Holdings by account -->
+    <div id="holdings-section">
+      <div class="panel-hdr">
+        Holdings
+        <span class="cnt" id="hold-cnt"></span>
+        <button class="btn-refresh" onclick="loadPortfolio()" title="Refresh positions">↻</button>
+      </div>
+      <div id="holdings-body">
+        <div class="no-holdings">Loading via MCP…</div>
+      </div>
+    </div>
+
+  </div><!-- /left-panel -->
+
+  <!-- ═══════════════════ CENTER TOP ═══════════════════ -->
+  <div id="center-top">
+
+    <!-- Tab bar -->
+    <div class="center-tabs">
+      <button class="ctab active" id="tab-chart"     onclick="showTab('chart')">Chart</button>
+      <button class="ctab"        id="tab-dashboard" onclick="showTab('dashboard')">Dashboard</button>
+    </div>
+
+    <!-- Chart view -->
+    <div id="chart-view">
+      <div id="detail-empty">← Select a ticker from the watchlist or holdings</div>
+      <div id="detail-content">
+        <div class="det-top">
+          <span class="det-ticker" id="det-ticker"></span>
+          <span class="det-price"  id="det-price"></span>
+          <span class="det-chg"    id="det-chg"></span>
+          <div class="span-btns">
+            <button class="span-btn"        onclick="loadChart('day',   event)">1D</button>
+            <button class="span-btn active" onclick="loadChart('week',  event)">1W</button>
+            <button class="span-btn"        onclick="loadChart('month', event)">1M</button>
+            <button class="span-btn"        onclick="loadChart('3month',event)">3M</button>
+            <button class="span-btn"        onclick="loadChart('year',  event)">1Y</button>
+          </div>
+        </div>
+        <!-- Position info bar (shows only when holding this ticker) -->
+        <div id="position-bar"></div>
+        <!-- Metrics row -->
+        <div class="det-meta">
+          <div class="det-meta-box"><span class="dm-lbl">52W</span><span class="dm-val" id="det-52">—</span></div>
+          <div class="det-meta-box"><span class="dm-lbl">VOL</span><span class="dm-val" id="det-vol">—</span></div>
+          <div class="det-meta-box"><span class="dm-lbl">PREV</span><span class="dm-val" id="det-prev">—</span></div>
+        </div>
+        <div id="chart-wrap">
+          <svg id="sparkline" preserveAspectRatio="none"></svg>
+          <span class="spark-label hi" id="spark-hi"></span>
+          <span class="spark-label lo" id="spark-lo"></span>
+        </div>
+      </div>
+    </div><!-- /chart-view -->
+
+    <!-- Dashboard view -->
+    <div id="dashboard-view">
+      <div id="dash-header">
+        <span id="dash-summary">Portfolio Overview</span>
+        <div class="span-btns" style="margin-left:auto;">
+          <button class="span-btn" onclick="dashSetSpan('day')">1D</button>
+          <button class="span-btn active" id="dash-span-btn-week" onclick="dashSetSpan('week')">1W</button>
+          <button class="span-btn" onclick="dashSetSpan('month')">1M</button>
+          <button class="span-btn" onclick="dashSetSpan('3month')">3M</button>
+          <button class="span-btn" onclick="dashSetSpan('year')">1Y</button>
+        </div>
+        <button class="btn-sm" style="background:var(--bg3);border-color:var(--border);color:var(--text2);"
+                onclick="loadDashboard()">↻ Refresh</button>
+      </div>
+      <div id="dash-empty" style="display:none;">No positions loaded. Connect Robinhood MCP first.</div>
+      <div id="dash-grid"></div>
+    </div><!-- /dashboard-view -->
+
+  </div><!-- /center-top -->
+
+  <!-- ═══════════════════ ORDER HISTORY ═══════════════════ -->
+  <div id="order-history">
+    <div class="panel-hdr">
+      Order History
+      <button class="btn-refresh" onclick="loadHistory()">↻</button>
+    </div>
+    <div id="hist-body">
+      <div class="hist-row hist-hdr">
+        <span>Date</span><span>Side</span><span>Type</span>
+        <span>Ticker</span><span>Qty</span><span>Price</span><span>Status</span>
+      </div>
+      <div id="hist-rows"><div class="no-orders">Loading…</div></div>
+    </div>
+  </div>
+
+  <!-- ═══════════════════ ORDER PANEL ═══════════════════ -->
+  <div id="order-panel">
+    <div class="panel-hdr">Place Order</div>
+
+    <div class="order-section">
+      <div class="side-toggle">
+        <button class="side-btn buy active" id="btn-buy"  onclick="setSide('buy')">BUY</button>
+        <button class="side-btn sell"       id="btn-sell" onclick="setSide('sell')">SELL</button>
+      </div>
+
+      <div class="form-row">
+        <div class="form-label">Symbol</div>
+        <input class="form-inp" id="ord-ticker" placeholder="AAOI" style="text-transform:uppercase"/>
+      </div>
+
+      <div class="form-row">
+        <div class="form-label">Order Type</div>
+        <select class="form-inp" id="ord-type" onchange="onTypeChange()">
+          <option value="market">Market</option>
+          <option value="limit">Limit</option>
+          <option value="stop_loss">Stop Loss</option>
+          <option value="stop_limit">Stop Limit</option>
+          <option value="trailing_stop">Trailing Stop</option>
+        </select>
+      </div>
+
+      <div class="form-row">
+        <div class="form-label">Quantity (shares)</div>
+        <input class="form-inp" id="ord-qty" type="number" min="0.000001" step="any" placeholder="1"/>
+      </div>
+
+      <div class="form-grid">
+        <div class="form-row" id="row-limit">
+          <div class="form-label">Limit $</div>
+          <input class="form-inp" id="ord-limit" type="number" step="any" placeholder="0.00"/>
+        </div>
+        <div class="form-row" id="row-stop">
+          <div class="form-label">Stop $</div>
+          <input class="form-inp" id="ord-stop" type="number" step="any" placeholder="0.00"/>
+        </div>
+        <div class="form-row" id="row-trail" style="display:none;">
+          <div class="form-label">Trail Amt</div>
+          <input class="form-inp" id="ord-trail" type="number" step="any" placeholder="5"/>
+        </div>
+        <div class="form-row" id="row-trail-type" style="display:none;">
+          <div class="form-label">Trail Type</div>
+          <select class="form-inp" id="ord-trail-type">
+            <option value="percentage">% price</option>
+            <option value="amount">$ amount</option>
+          </select>
+        </div>
+      </div>
+
+      <div class="form-row">
+        <div class="form-label">Time in Force</div>
+        <div class="tif-row">
+          <button class="tif-btn active" onclick="setTif('gfd')" title="Good for Day">GFD</button>
+          <button class="tif-btn"        onclick="setTif('gtc')" title="Good till Cancelled">GTC</button>
+          <button class="tif-btn"        onclick="setTif('ioc')" title="Immediate or Cancel">IOC</button>
+          <button class="tif-btn"        onclick="setTif('opg')" title="Market on Open">OPG</button>
+        </div>
+      </div>
+
+      <button class="place-btn buy" id="place-btn" onclick="confirmOrder()">Place Buy Order</button>
+      <div id="order-msg"></div>
+    </div>
+
+    <!-- Open Orders -->
+    <div class="panel-hdr" style="border-top:1px solid var(--border);">
+      Open Orders
+      <button class="btn-refresh" onclick="loadOpenOrders()">↻</button>
+    </div>
+    <div id="open-orders-list">
+      <div class="no-orders">Loading…</div>
+    </div>
+  </div><!-- /order-panel -->
+
+</div><!-- /layout -->
+
+<script>
+// ── State ─────────────────────────────────────────────────────────────────────
+let _mcpReady    = false;
+let _side        = 'buy';
+let _tif         = 'gfd';
+let _selected    = null;
+let _prices      = {};          // {TICKER: {price, chg_pct}} — from SSE / watchlist
+let _portfolio   = [];          // enriched positions from /api/trader/portfolio
+let _pendingOrder = null;
+let _sse         = null;
+let _dashSpan    = 'week';
+let _activeTab   = 'chart';
+
+// ── Helpers ───────────────────────────────────────────────────────────────────
+const $ = id => document.getElementById(id);
+const fmt  = n => (n == null || isNaN(Number(n))) ? '—' : '$' + Number(n).toFixed(2);
+const fmtN = n => {
+  if (!n || isNaN(n)) return '—';
+  n = Number(n);
+  if (n >= 1e9) return (n/1e9).toFixed(2)+'B';
+  if (n >= 1e6) return (n/1e6).toFixed(2)+'M';
+  if (n >= 1e3) return (n/1e3).toFixed(1)+'k';
+  return String(n);
+};
+const colorClass = p => Number(p) > 0 ? 'up' : Number(p) < 0 ? 'dn' : 'neu';
+const fmtPct  = (p, plus=true) => (plus && p>=0 ? '+' : '') + Number(p).toFixed(2) + '%';
+const fmtDate = iso => {
+  if (!iso) return '—';
+  const d = new Date(iso);
+  return d.toLocaleDateString('en-US',{month:'short',day:'numeric'}) + ' ' +
+         d.toLocaleTimeString('en-US',{hour:'2-digit',minute:'2-digit',hour12:false});
+};
+const qtyFmt = n => {
+  const v = Number(n);
+  return v === Math.floor(v) ? v.toFixed(0)+'sh' : v.toFixed(4)+'sh';
+};
+
+// Badge class by account type
+const acctBadgeClass = label => {
+  const l = (label||'').toLowerCase();
+  if (l.includes('roth'))   return 'roth';
+  if (l.includes('ira'))    return 'ira';
+  return 'brokerage';
+};
+const acctShort = label => {
+  const l = (label||'').toLowerCase();
+  if (l.includes('roth'))        return 'ROTH IRA';
+  if (l.includes('traditional')) return 'TRAD IRA';
+  return 'BROKERAGE';
+};
+
+// ── Tab switching ─────────────────────────────────────────────────────────────
+function showTab(tab) {
+  _activeTab = tab;
+  $('tab-chart').classList.toggle('active',     tab === 'chart');
+  $('tab-dashboard').classList.toggle('active', tab === 'dashboard');
+  $('chart-view').style.display     = tab === 'chart'     ? 'flex' : 'none';
+  $('dashboard-view').style.display = tab === 'dashboard' ? 'flex' : 'none';
+  if (tab === 'dashboard') loadDashboard();
+}
+
+// ── MCP Status ────────────────────────────────────────────────────────────────
+async function checkMCP() {
+  try {
+    const r = await fetch('/api/trader/status');
+    const d = await r.json();
+    _mcpReady = d.claude_available && d.robinhood_mcp;
+    const btn = $('auth-btn');
+    if (!d.claude_available) {
+      btn.textContent = '🔴 Claude Not Found';
+      btn.className   = 'auth-pill out';
+    } else if (!d.robinhood_mcp) {
+      btn.textContent = '🟡 MCP Not Connected';
+      btn.className   = 'auth-pill warn';
+    } else {
+      btn.textContent = '🟢 Robinhood MCP';
+      btn.className   = 'auth-pill in';
+    }
+    if (_mcpReady) {
+      loadAccount();
+      loadPortfolio();
+      loadOpenOrders();
+      loadHistory();
+    }
+  } catch {
+    $('auth-btn').textContent = '⚫ Error';
+    $('auth-btn').className   = 'auth-pill out';
+  }
+}
+
+function toggleMcpInfo() {
+  if (_mcpReady) { checkMCP(); return; }
+  const noCliFound = $('auth-btn').textContent.includes('Claude Not Found');
+  $('mcp-step-cli').style.display = noCliFound ? '' : 'none';
+  $('mcp-step-num').textContent   = noCliFound ? 'Step 2 — Register Robinhood MCP' : 'Register Robinhood MCP';
+  $('mcp-modal').classList.add('show');
+}
+function closeMcpModal() { $('mcp-modal').classList.remove('show'); }
+
+// ── Account header ────────────────────────────────────────────────────────────
+async function loadAccount() {
+  const r = await fetch('/api/trader/account');
+  if (!r.ok) return;
+  const d = await r.json();
+  if (d.equity) {
+    $('acct-val').textContent = fmt(d.equity);
+    const pct = Number(d.day_return_pct || 0);
+    $('acct-sub').textContent = fmtPct(pct) + ' today';
+    $('acct-sub').className   = 'acct-sub ' + colorClass(pct);
+  }
+}
+
+// ── Portfolio / Holdings ──────────────────────────────────────────────────────
+async function loadPortfolio() {
+  $('holdings-body').innerHTML = '<div class="no-holdings">Loading via MCP…</div>';
+  const r = await fetch('/api/trader/portfolio');
+  if (!r.ok) return;
+  const d = await r.json();
+  _portfolio = d.positions || [];
+  renderHoldings();
+
+  // Sync all position tickers into the watchlist for live SSE prices
+  if (_portfolio.length) {
+    const tickers = _portfolio.map(p => p.ticker).filter(Boolean);
+    await fetch('/api/trader/watchlist/sync', {
+      method:'POST', headers:{'Content-Type':'application/json'},
+      body: JSON.stringify({tickers}),
+    });
+    loadWatchlist();
+  }
+
+  // If dashboard is open, refresh it
+  if (_activeTab === 'dashboard') loadDashboard();
+}
+
+function renderHoldings() {
+  const el = $('holdings-body');
+  if (!_portfolio.length) {
+    el.innerHTML = '<div class="no-holdings">No positions found via MCP</div>';
+    $('hold-cnt').textContent = '';
+    return;
+  }
+
+  $('hold-cnt').textContent = _portfolio.length;
+
+  // Group by account_label
+  const order = ['Brokerage', 'Traditional IRA', 'Roth IRA'];
+  const groups = {};
+  for (const p of _portfolio) {
+    const acct = p.account_label || 'Brokerage';
+    if (!groups[acct]) groups[acct] = [];
+    groups[acct].push(p);
+  }
+  // Sort accounts: known first, then others
+  const acctKeys = [
+    ...order.filter(k => groups[k]),
+    ...Object.keys(groups).filter(k => !order.includes(k)),
+  ];
+
+  el.innerHTML = acctKeys.map(acct => {
+    const positions = groups[acct];
+    // Total equity for this account
+    const totalEq = positions.reduce((s, p) => s + Number(p.equity || 0), 0);
+    const rows = positions.map(p => {
+      const pct = Number(p.percent_change || 0);
+      const cur = Number(p.current_price || 0);
+      const eq  = Number(p.equity || 0);
+      const qty = Number(p.quantity || 0);
+      const cls = colorClass(pct);
+      const isActive = p.ticker === _selected;
+      return `<div class="holding-row${isActive?' active':''}" onclick="selectTicker('${p.ticker}')">
+        <div class="holding-top">
+          <span class="holding-ticker">${p.ticker}</span>
+          <span class="holding-qty">${qtyFmt(qty)}</span>
+          <span class="holding-pct ${cls}">${fmtPct(pct)}</span>
+        </div>
+        <div class="holding-bot">
+          <span class="holding-price">${fmt(cur)}</span>
+          <span class="holding-val">${fmt(eq)}</span>
+        </div>
+      </div>`;
+    }).join('');
+
+    return `<div class="acct-group">
+      <div class="acct-hdr">
+        ${acct}
+        <span class="acct-cnt">${positions.length}</span>
+        <span class="acct-equity">${fmt(totalEq)}</span>
+      </div>
+      ${rows}
+    </div>`;
+  }).join('');
+}
+
+// ── Watchlist ─────────────────────────────────────────────────────────────────
+async function loadWatchlist() {
+  const r = await fetch('/api/trader/watchlist');
+  const d = await r.json();
+  renderWatchlist(d.tickers);
+}
+
+function renderWatchlist(tickers) {
+  $('wl-cnt').textContent = tickers.length;
+  $('wl-body').innerHTML  = tickers.map(t => {
+    const p   = _prices[t];
+    const px  = p ? fmt(p.price) : '—';
+    const pct = p ? Number(p.chg_pct) : 0;
+    const cls = colorClass(pct);
+    const act = t === _selected ? ' active' : '';
+    return `<div class="wl-row${act}" onclick="selectTicker('${t}')">
+      <span class="wl-ticker">${t}</span>
+      <span class="wl-price">${px}</span>
+      <span class="wl-chg ${cls}">${p ? fmtPct(pct) : ''}</span>
+      <span class="wl-del" onclick="event.stopPropagation();removeTicker('${t}')">×</span>
+    </div>`;
+  }).join('');
+}
+
+async function addTicker() {
+  const inp = $('add-ticker-inp');
+  const t   = inp.value.trim().toUpperCase();
+  if (!t) return;
+  const r = await fetch('/api/trader/watchlist', {
+    method:'POST', headers:{'Content-Type':'application/json'},
+    body: JSON.stringify({ticker:t}),
+  });
+  inp.value = '';
+  renderWatchlist((await r.json()).tickers);
+}
+
+async function removeTicker(ticker) {
+  const r = await fetch('/api/trader/watchlist/' + ticker, {method:'DELETE'});
+  if (_selected === ticker) _selected = null;
+  renderWatchlist((await r.json()).tickers);
+}
+
+// ── SSE live prices ───────────────────────────────────────────────────────────
+function startSSE() {
+  if (_sse) _sse.close();
+  _sse = new EventSource('/api/trader/stream');
+  _sse.onmessage = e => {
+    Object.assign(_prices, JSON.parse(e.data));
+    // Update watchlist rows in-place
+    document.querySelectorAll('.wl-row').forEach(row => {
+      const t   = row.querySelector('.wl-ticker').textContent;
+      const p   = _prices[t];
+      if (!p) return;
+      const pct = Number(p.chg_pct);
+      const cls = colorClass(pct);
+      row.querySelector('.wl-price').textContent = fmt(p.price);
+      const chgEl = row.querySelector('.wl-chg');
+      chgEl.textContent = fmtPct(pct);
+      chgEl.className   = 'wl-chg ' + cls;
+    });
+    if (_selected && _prices[_selected]) updateDetailPrice(_selected);
+    // Update holding prices in dashboard
+    if (_activeTab === 'dashboard') updateDashPrices();
+  };
+  _sse.onerror = () => setTimeout(startSSE, 15000);
+}
+
+// ── Ticker Detail ─────────────────────────────────────────────────────────────
+async function selectTicker(ticker) {
+  _selected = ticker;
+  $('ord-ticker').value = ticker;
+
+  // Highlight watchlist + holdings
+  document.querySelectorAll('.wl-row').forEach(r =>
+    r.classList.toggle('active', r.querySelector('.wl-ticker').textContent === ticker)
+  );
+  document.querySelectorAll('.holding-row').forEach(r =>
+    r.classList.toggle('active', r.querySelector('.holding-ticker')?.textContent === ticker)
+  );
+
+  showTab('chart');
+  $('detail-empty').style.display   = 'none';
+  $('detail-content').style.display = 'flex';
+  $('det-ticker').textContent = ticker;
+
+  // Show position info if holding this ticker
+  const pos = _portfolio.find(p => p.ticker === ticker);
+  if (pos) {
+    const qty  = Number(pos.quantity);
+    const avg  = Number(pos.avg_cost);
+    const cur  = Number(pos.current_price || 0);
+    const eq   = Number(pos.equity || qty * cur);
+    const pl   = eq - qty * avg;
+    const plPct = avg ? (cur - avg) / avg * 100 : 0;
+    const cls  = colorClass(plPct);
+    $('position-bar').style.display = '';
+    $('position-bar').innerHTML =
+      `📊 <strong>${qtyFmt(qty)}</strong> &nbsp;·&nbsp; Avg ${fmt(avg)} &nbsp;·&nbsp; `+
+      `Value ${fmt(eq)} &nbsp;·&nbsp; P&amp;L `+
+      `<span class="${cls}">${pl>=0?'+':''}${fmt(pl)} (${fmtPct(plPct)})</span>`+
+      `&nbsp;·&nbsp; <em style="color:var(--text2)">${pos.account_label||'Brokerage'}</em>`;
+  } else {
+    $('position-bar').style.display = 'none';
+    $('position-bar').innerHTML = '';
+  }
+
+  // Fetch live quote
+  const r = await fetch('/api/trader/quote/' + ticker);
+  if (!r.ok) return;
+  const d = await r.json();
+  if (d.error) return;
+
+  const pct = Number(d.chg_pct || 0);
+  const cls = colorClass(pct);
+  $('det-price').textContent = fmt(d.price);
+  $('det-chg').textContent   = fmtPct(pct);
+  $('det-chg').className     = 'det-chg ' + cls;
+  $('det-52').textContent    = (d.low_52w && d.high_52w) ? fmt(d.low_52w) + ' – ' + fmt(d.high_52w) : '—';
+  $('det-vol').textContent   = fmtN(d.volume);
+  $('det-prev').textContent  = fmt(d.prev_close);
+
+  $('ord-limit').value = d.price ? Number(d.price).toFixed(2) : '';
+  $('ord-stop').value  = d.price ? Number(d.price).toFixed(2) : '';
+
+  loadChart('week', null);
+}
+
+function updateDetailPrice(ticker) {
+  const p = _prices[ticker];
+  if (!p) return;
+  const pct = Number(p.chg_pct);
+  $('det-price').textContent = fmt(p.price);
+  $('det-chg').textContent   = fmtPct(pct);
+  $('det-chg').className     = 'det-chg ' + colorClass(pct);
+}
+
+// ── Sparkline ─────────────────────────────────────────────────────────────────
+async function loadChart(span, evt) {
+  if (!_selected) return;
+  if (evt) {
+    document.querySelectorAll('#chart-view .span-btn').forEach(b => b.classList.remove('active'));
+    evt.target.classList.add('active');
+  }
+  const r = await fetch(`/api/trader/history/${_selected}?span=${span}`);
+  if (!r.ok) return;
+  const d = await r.json();
+  drawSparkline($('sparkline'), d.prices || []);
+}
+
+function drawSparkline(svg, prices) {
+  if (prices.length < 2) return;
+  const W = svg.clientWidth  || 600;
+  const H = svg.clientHeight || 140;
+  const pad = 8;
+  const lo = Math.min(...prices), hi = Math.max(...prices), rng = hi - lo || 1;
+  const xS = (W - pad*2) / (prices.length - 1);
+  const yS = (H - pad*2) / rng;
+  const pts  = prices.map((p, i) => `${pad + i*xS},${H - pad - (p - lo)*yS}`);
+  const fill = `${pts.join('L')}L${pad+(prices.length-1)*xS},${H}L${pad},${H}Z`;
+  const up   = prices[prices.length-1] >= prices[0];
+  const color = up ? '#3fb950' : '#f85149';
+  svg.innerHTML = `
+    <defs><linearGradient id="sg" x1="0" y1="0" x2="0" y2="1">
+      <stop offset="0%" stop-color="${color}" stop-opacity=".22"/>
+      <stop offset="100%" stop-color="${color}" stop-opacity="0"/>
+    </linearGradient></defs>
+    <path d="M${fill}" fill="url(#sg)"/>
+    <polyline points="${pts.join(' ')}" fill="none" stroke="${color}" stroke-width="1.5"/>
+    <circle cx="${pad+(prices.length-1)*xS}" cy="${H-pad-(prices[prices.length-1]-lo)*yS}"
+            r="3" fill="${color}"/>`;
+  $('spark-hi').textContent = '$' + hi.toFixed(2);
+  $('spark-lo').textContent = '$' + lo.toFixed(2);
+}
+
+// ── Dashboard ─────────────────────────────────────────────────────────────────
+function dashSetSpan(span) {
+  _dashSpan = span;
+  document.querySelectorAll('#dash-header .span-btn').forEach(b => b.classList.remove('active'));
+  event.target.classList.add('active');
+  loadDashboard();
+}
+
+async function loadDashboard() {
+  const grid = $('dash-grid');
+  const empty = $('dash-empty');
+
+  if (!_portfolio.length) {
+    empty.style.display = '';
+    grid.innerHTML = '';
+    return;
+  }
+  empty.style.display = 'none';
+
+  // Compute totals for summary
+  const totalEq  = _portfolio.reduce((s, p) => s + Number(p.equity || 0), 0);
+  const totalCost = _portfolio.reduce((s, p) => s + Number(p.avg_cost || 0) * Number(p.quantity || 0), 0);
+  const totalPl   = totalEq - totalCost;
+  const totalPct  = totalCost ? totalPl / totalCost * 100 : 0;
+  const cls = colorClass(totalPct);
+  $('dash-summary').innerHTML =
+    `<strong>${_portfolio.length} positions</strong> &nbsp;·&nbsp; `+
+    `Total ${fmt(totalEq)} &nbsp;·&nbsp; `+
+    `P&amp;L <span class="${cls}">${totalPl>=0?'+':''}${fmt(totalPl)} (${fmtPct(totalPct)})</span>`;
+
+  // Render card skeletons
+  grid.innerHTML = _portfolio.map(p => dashCardHTML(p)).join('');
+
+  // Load sparklines in parallel
+  await Promise.all(_portfolio.map(async p => {
+    try {
+      const r = await fetch(`/api/trader/history/${p.ticker}?span=${_dashSpan}`);
+      if (!r.ok) return;
+      const d = await r.json();
+      if (!d.prices?.length) return;
+      const svgEl = document.querySelector(`.dash-card[data-ticker="${p.ticker}"] .dash-svg`);
+      if (svgEl) drawMiniSparkline(svgEl, d.prices);
+    } catch {}
+  }));
+}
+
+function dashCardHTML(p) {
+  const pct  = Number(p.percent_change || 0);
+  const cur  = Number(p.current_price  || 0);
+  const avg  = Number(p.avg_cost       || 0);
+  const qty  = Number(p.quantity       || 0);
+  const eq   = Number(p.equity         || 0);
+  const pl   = eq - qty * avg;
+  const cls  = colorClass(pct);
+  const badge = acctBadgeClass(p.account_label);
+  return `
+    <div class="dash-card" data-ticker="${p.ticker}"
+         onclick="selectTicker('${p.ticker}')">
+      <div class="dash-card-hdr">
+        <span class="dash-ticker">${p.ticker}</span>
+        <span class="dash-acct-badge ${badge}">${acctShort(p.account_label)}</span>
+      </div>
+      <div class="dash-price ${cls}">
+        ${fmt(cur)} <span class="dash-chg">${fmtPct(pct)}</span>
+      </div>
+      <div class="dash-stats">
+        <span>${qtyFmt(qty)}</span>
+        <span>${fmt(eq)}</span>
+      </div>
+      <div class="dash-pl ${cls}">
+        ${pl>=0?'▲':'▼'} ${pl>=0?'+':''}${fmt(pl)} vs avg ${fmt(avg)}
+      </div>
+      <svg class="dash-svg" viewBox="0 0 160 44" preserveAspectRatio="none">
+        <text x="80" y="26" text-anchor="middle" fill="#484f58" font-size="10">loading…</text>
+      </svg>
+    </div>`;
+}
+
+function drawMiniSparkline(svg, prices) {
+  const W = 160, H = 44, pad = 3;
+  const lo = Math.min(...prices), hi = Math.max(...prices), rng = hi - lo || 1;
+  const xS = (W - pad*2) / (prices.length - 1);
+  const yS = (H - pad*2) / rng;
+  const pts = prices.map((p, i) => `${pad + i*xS},${H - pad - (p - lo)*yS}`);
+  const up  = prices[prices.length-1] >= prices[0];
+  const color = up ? '#3fb950' : '#f85149';
+  svg.innerHTML = `
+    <defs><linearGradient id="mg${Math.random().toString(36).slice(2)}" x1="0" y1="0" x2="0" y2="1">
+      <stop offset="0%" stop-color="${color}" stop-opacity=".2"/>
+      <stop offset="100%" stop-color="${color}" stop-opacity="0"/>
+    </linearGradient></defs>
+    <path d="M${pts.join('L')}L${pad+(prices.length-1)*xS},${H}L${pad},${H}Z" fill="url(#mg${Math.random().toString(36).slice(2)})"/>
+    <polyline points="${pts.join(' ')}" fill="none" stroke="${color}" stroke-width="1.2"/>
+    <circle cx="${pad+(prices.length-1)*xS}" cy="${H-pad-(prices[prices.length-1]-lo)*yS}" r="2.5" fill="${color}"/>`;
+}
+
+function updateDashPrices() {
+  document.querySelectorAll('.dash-card').forEach(card => {
+    const t   = card.dataset.ticker;
+    const p   = _prices[t];
+    if (!p) return;
+    const pct = Number(p.chg_pct);
+    const cls = colorClass(pct);
+    const priceEl = card.querySelector('.dash-price');
+    if (priceEl) {
+      priceEl.className = 'dash-price ' + cls;
+      priceEl.innerHTML = `${fmt(p.price)} <span class="dash-chg">${fmtPct(pct)}</span>`;
+    }
+  });
+}
+
+// ── Order Form ────────────────────────────────────────────────────────────────
+function setSide(side) {
+  _side = side;
+  $('btn-buy').classList.toggle('active',  side==='buy');
+  $('btn-sell').classList.toggle('active', side==='sell');
+  const btn = $('place-btn');
+  btn.textContent = 'Place ' + side.charAt(0).toUpperCase() + side.slice(1) + ' Order';
+  btn.className   = 'place-btn ' + side;
+}
+
+function setTif(tif) {
+  _tif = tif;
+  document.querySelectorAll('.tif-btn').forEach(b =>
+    b.classList.toggle('active', b.textContent === tif.toUpperCase())
+  );
+}
+
+function onTypeChange() {
+  const t = $('ord-type').value;
+  $('row-limit').style.display      = ['limit','stop_limit'].includes(t)  ? '' : 'none';
+  $('row-stop').style.display       = ['stop_loss','stop_limit'].includes(t) ? '' : 'none';
+  $('row-trail').style.display      = t === 'trailing_stop' ? '' : 'none';
+  $('row-trail-type').style.display = t === 'trailing_stop' ? '' : 'none';
+}
+onTypeChange();
+
+function confirmOrder() {
+  if (!_mcpReady) { showOrderMsg('Robinhood MCP not connected — click the status pill.', false); return; }
+  const ticker = $('ord-ticker').value.trim().toUpperCase();
+  const qty    = parseFloat($('ord-qty').value);
+  const type   = $('ord-type').value;
+  if (!ticker)          { showOrderMsg('Enter a ticker symbol', false); return; }
+  if (!qty || qty <= 0) { showOrderMsg('Enter a valid quantity', false); return; }
+  const limitPx  = parseFloat($('ord-limit').value) || null;
+  const stopPx   = parseFloat($('ord-stop').value)  || null;
+  const trail    = parseFloat($('ord-trail').value)  || null;
+  const trailTyp = $('ord-trail-type').value;
+  if (type==='limit'         && !limitPx)            { showOrderMsg('Enter a limit price', false); return; }
+  if (type==='stop_loss'     && !stopPx)             { showOrderMsg('Enter a stop price', false); return; }
+  if (type==='stop_limit'    && (!limitPx||!stopPx)) { showOrderMsg('Enter stop and limit prices', false); return; }
+  if (type==='trailing_stop' && !trail)              { showOrderMsg('Enter a trail amount', false); return; }
+
+  _pendingOrder = {side:_side, ticker, qty, type, limitPx, stopPx, trail, trailTyp};
+
+  const typeLabel = {market:'Market',limit:'Limit',stop_loss:'Stop Loss',
+                     stop_limit:'Stop Limit',trailing_stop:'Trailing Stop'}[type];
+  let detail = `<div class="confirm-detail"><strong>${_side.toUpperCase()} ${qty} share${qty!==1?'s':''} of ${ticker}</strong></div>`;
+  detail += `<div class="confirm-detail">Order type: <strong>${typeLabel}</strong></div>`;
+  if (limitPx) detail += `<div class="confirm-detail">Limit price: <strong>${fmt(limitPx)}</strong></div>`;
+  if (stopPx)  detail += `<div class="confirm-detail">Stop price: <strong>${fmt(stopPx)}</strong></div>`;
+  if (trail)   detail += `<div class="confirm-detail">Trail: <strong>${trail}${trailTyp==='percentage'?'%':'$'}</strong></div>`;
+  detail += `<div class="confirm-detail">Time in force: <strong>${_tif.toUpperCase()}</strong></div>`;
+  if (_prices[ticker]) detail += `<div class="confirm-detail">Market price now: <strong>${fmt(_prices[ticker].price)}</strong></div>`;
+
+  $('confirm-title').textContent = `Confirm ${_side.toUpperCase()} Order`;
+  $('confirm-detail').innerHTML  = detail;
+  $('confirm-place').className   = _side === 'sell' ? 'sell' : '';
+  $('confirm-place').textContent = `Confirm ${_side.toUpperCase()}`;
+  $('confirm-modal').classList.add('show');
+}
+
+function closeConfirm() { $('confirm-modal').classList.remove('show'); _pendingOrder = null; }
+
+async function executeOrder() {
+  if (!_pendingOrder) return;
+  $('confirm-modal').classList.remove('show');
+  const o = _pendingOrder; _pendingOrder = null;
+  $('place-btn').disabled = true;
+  showOrderMsg('Placing order via Robinhood MCP…', true);
+  try {
+    const r = await fetch('/api/trader/order', {
+      method:'POST', headers:{'Content-Type':'application/json'},
+      body: JSON.stringify({
+        side:o.side, ticker:o.ticker, quantity:o.qty,
+        order_type:o.type, time_in_force:_tif,
+        limit_price:o.limitPx, stop_price:o.stopPx,
+        trail_amount:o.trail, trail_type:o.trailTyp,
+      }),
+    });
+    const d = await r.json();
+    if (d.success) {
+      showOrderMsg(`✓ Order placed — ID: ${d.order_id || '(see Robinhood)'}`, true);
+      setTimeout(() => { loadOpenOrders(); loadHistory(); }, 3000);
+    } else {
+      showOrderMsg(`✗ ${d.error || 'Order failed'}`, false);
+    }
+  } catch { showOrderMsg('✗ Network error', false); }
+  finally  { $('place-btn').disabled = false; }
+}
+
+function showOrderMsg(msg, ok) {
+  const el = $('order-msg');
+  el.textContent   = msg;
+  el.className     = ok ? 'msg-ok' : 'msg-err';
+  el.style.display = 'block';
+  if (ok) setTimeout(() => el.style.display = 'none', 8000);
+}
+
+// ── Open Orders ───────────────────────────────────────────────────────────────
+async function loadOpenOrders() {
+  const r = await fetch('/api/trader/orders/open');
+  if (!r.ok) return;
+  const orders = await r.json();
+  const el = $('open-orders-list');
+  if (!Array.isArray(orders) || !orders.length) {
+    el.innerHTML = '<div class="no-orders">No open orders</div>';
+    return;
+  }
+  el.innerHTML = orders.map(o => {
+    const px   = o.limit_price ? fmt(o.limit_price) : o.stop_price ? fmt(o.stop_price) : 'MKT';
+    const sideC = o.side === 'buy' ? 'var(--green)' : 'var(--red)';
+    return `<div class="open-row">
+      <span style="font-weight:700;color:${sideC}">${o.ticker||'…'}</span>
+      <span style="color:${sideC}">${(o.side||'').toUpperCase()}</span>
+      <span class="open-type">${(o.order_type||'').replace('_',' ')}</span>
+      <span class="open-price">${px} × ${o.quantity}</span>
+      <button class="cancel-btn" onclick="cancelOrder('${o.id}')" title="Cancel">×</button>
+    </div>`;
+  }).join('');
+}
+
+async function cancelOrder(id) {
+  if (!confirm('Cancel this order?')) return;
+  const r = await fetch('/api/trader/orders/' + id, {method:'DELETE'});
+  const d = await r.json();
+  if (d.success) loadOpenOrders();
+  else alert('Cancel failed: ' + (d.error || '?'));
+}
+
+// ── Order History ─────────────────────────────────────────────────────────────
+async function loadHistory() {
+  const r = await fetch('/api/trader/orders/history?limit=30');
+  if (!r.ok) return;
+  const orders = await r.json();
+  const el = $('hist-rows');
+  if (!Array.isArray(orders) || !orders.length) {
+    el.innerHTML = '<div class="no-orders">No order history</div>'; return;
+  }
+  el.innerHTML = orders.map(o => {
+    const stCls = 'state-' + (o.state||'').toLowerCase();
+    const sideC = o.side === 'buy' ? 'var(--green)' : 'var(--red)';
+    return `<div class="hist-row">
+      <span style="color:var(--text2)">${fmtDate(o.created_at)}</span>
+      <span style="color:${sideC};font-weight:700">${(o.side||'').toUpperCase()}</span>
+      <span style="color:var(--text2)">${(o.order_type||'').replace('_',' ')}</span>
+      <span style="font-weight:700">${o.ticker||'—'}</span>
+      <span>${o.filled_qty||0}/${o.quantity}</span>
+      <span>${o.avg_price ? fmt(o.avg_price) : '—'}</span>
+      <span class="${stCls}">${o.state||'—'}</span>
+    </div>`;
+  }).join('');
+}
+
+// ── Init ──────────────────────────────────────────────────────────────────────
+document.addEventListener('keydown', e => {
+  if (e.key === 'Escape') { closeMcpModal(); closeConfirm(); }
+});
+
+startSSE();          // live prices via Yahoo Finance (no auth)
+loadWatchlist();     // load saved watchlist
+checkMCP();          // check MCP status, then load portfolio + orders
+
+setInterval(() => { if (_mcpReady) { loadPortfolio(); loadOpenOrders(); loadAccount(); } }, 60000);
+setInterval(() => { if (_mcpReady) loadHistory(); }, 120000);
+setInterval(checkMCP, 300000);   // re-check MCP every 5 min
+</script>
+</body>
+</html>

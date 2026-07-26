@@ -1,0 +1,105 @@
+{
+  "version": "2.0.0",
+  "tasks": [
+    {
+      "label": "Backend: TradePulse API",
+      "type": "shell",
+      "command": "venv\\Scripts\\activate && uvicorn main:app --reload --port 8000",
+      "options": {
+        "cwd": "${workspaceFolder}/backend",
+        "shell": {
+          "executable": "cmd.exe",
+          "args": ["/C"]
+        }
+      },
+      "presentation": {
+        "group": "tradepulse",
+        "panel": "dedicated",
+        "reveal": "always",
+        "showReuseMessage": false,
+        "label": "Backend (8000)"
+      },
+      "isBackground": true,
+      "problemMatcher": {
+        "pattern": { "regexp": "^ERROR.*$" },
+        "background": {
+          "activeOnStart": true,
+          "beginsPattern": "Started reloader process",
+          "endsPattern": "Application startup complete"
+        }
+      }
+    },
+    {
+      "label": "Screener: API",
+      "type": "shell",
+      "command": "..\\backend\\venv\\Scripts\\activate && uvicorn main:app --reload --port 8001",
+      "options": {
+        "cwd": "${workspaceFolder}/screener",
+        "shell": {
+          "executable": "cmd.exe",
+          "args": ["/C"]
+        }
+      },
+      "presentation": {
+        "group": "tradepulse",
+        "panel": "dedicated",
+        "reveal": "always",
+        "showReuseMessage": false,
+        "label": "Screener (8001)"
+      },
+      "isBackground": true,
+      "problemMatcher": {
+        "pattern": { "regexp": "^ERROR.*$" },
+        "background": {
+          "activeOnStart": true,
+          "beginsPattern": "Started reloader process",
+          "endsPattern": "Application startup complete"
+        }
+      }
+    },
+    {
+      "label": "Frontend: React",
+      "type": "shell",
+      "command": "npm start",
+      "options": {
+        "cwd": "${workspaceFolder}/frontend",
+        "shell": {
+          "executable": "cmd.exe",
+          "args": ["/C"]
+        }
+      },
+      "presentation": {
+        "group": "tradepulse",
+        "panel": "dedicated",
+        "reveal": "always",
+        "showReuseMessage": false,
+        "label": "Frontend (3000)"
+      },
+      "isBackground": true,
+      "problemMatcher": {
+        "pattern": { "regexp": "ERROR in.*$" },
+        "background": {
+          "activeOnStart": true,
+          "beginsPattern": "Starting the development server",
+          "endsPattern": "Compiled successfully"
+        }
+      }
+    },
+    {
+      "label": "TradePulse: Start All",
+      "dependsOn": [
+        "Backend: TradePulse API",
+        "Screener: API",
+        "Frontend: React"
+      ],
+      "dependsOrder": "parallel",
+      "group": {
+        "kind": "build",
+        "isDefault": true
+      },
+      "presentation": {
+        "reveal": "silent"
+      }
+    }
+  ]
+}

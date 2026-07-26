@@ -1,0 +1,481 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>TradePulse AutoTrader</title>
+  <style>
+    :root {
+      --bg:#0d1117;--bg2:#161b22;--bg3:#1c2333;--border:#30363d;
+      --text:#e6edf3;--text2:#8b949e;
+      --green:#3fb950;--green-dim:#1a3a24;
+      --red:#f85149;--red-dim:#3a1a1a;
+      --yellow:#d29922;--yellow-dim:#3a2e10;
+      --blue:#58a6ff;--blue-dim:#0d1f3c;
+      --purple:#bc8cff;
+      --font:'SF Mono','Fira Code','Cascadia Code',monospace;
+    }
+    * { box-sizing: border-box; margin: 0; padding: 0; }
+    body { background: var(--bg); color: var(--text); font-family: var(--font); font-size: 13px; min-height: 100vh; }
+
+    header {
+      background: var(--bg2); border-bottom: 1px solid var(--border);
+      padding: 14px 24px; display: flex; align-items: center;
+      justify-content: space-between; position: sticky; top: 0; z-index: 100; flex-wrap: wrap; gap: 10px;
+    }
+    .logo { display: flex; align-items: center; gap: 10px; }
+    .logo-icon { font-size: 22px; }
+    .logo-text { font-size: 16px; font-weight: 700; }
+    .logo-sub  { font-size: 11px; color: var(--text2); margin-top: 1px; }
+    .header-right { display: flex; align-items: center; gap: 10px; flex-wrap: wrap; }
+
+    .status-badge {
+      display: flex; align-items: center; gap: 6px;
+      padding: 4px 10px; border-radius: 20px; font-size: 11px; font-weight: 600;
+      background: var(--bg3); border: 1px solid var(--border);
+    }
+    .dot { width: 7px; height: 7px; border-radius: 50%; background: var(--text2); }
+    .dot.live     { background: var(--green);  box-shadow: 0 0 6px var(--green); animation: pulse 2s infinite; }
+    .dot.scanning { background: var(--yellow); animation: pulse 1s infinite; }
+    .dot.off      { background: var(--red); }
+    @keyframes pulse { 0%,100%{opacity:1} 50%{opacity:.4} }
+
+    .btn {
+      padding: 6px 14px; border-radius: 6px; border: 1px solid var(--border);
+      background: var(--bg2); color: var(--text); font-family: var(--font);
+      font-size: 11px; cursor: pointer; transition: all .15s;
+    }
+    .btn:hover { background: var(--bg3); border-color: var(--blue); color: var(--blue); }
+    .btn:disabled { opacity: .4; cursor: not-allowed; }
+    .btn-primary { background: #1f6feb; border-color: #1f6feb; color: #fff; }
+    .btn-primary:hover { background: #388bfd; border-color: #388bfd; color: #fff; }
+    .btn-buy { background: var(--green-dim); border-color: var(--green); color: var(--green); }
+    .btn-buy:hover { background: var(--green); color: #04140a; }
+
+    #auto-toggle-wrap { display: flex; align-items: center; gap: 8px; padding: 4px 10px; border-radius: 20px; background: var(--bg3); border: 1px solid var(--border); font-size: 11px; }
+    .switch { position: relative; width: 34px; height: 18px; }
+    .switch input { opacity: 0; width: 0; height: 0; }
+    .slider { position: absolute; inset: 0; background: var(--border); border-radius: 20px; cursor: pointer; transition: .15s; }
+    .slider::before { content: ''; position: absolute; width: 14px; height: 14px; left: 2px; top: 2px; background: var(--text2); border-radius: 50%; transition: .15s; }
+    input:checked + .slider { background: var(--red-dim); border: 1px solid var(--red); }
+    input:checked + .slider::before { transform: translateX(16px); background: var(--red); }
+
+    .meta-bar {
+      background: var(--bg3); border-bottom: 1px solid var(--border);
+      padding: 9px 24px; display: flex; align-items: center; gap: 16px;
+      font-size: 11px; color: var(--text2); flex-wrap: wrap;
+    }
+    .meta-item strong { color: var(--text); }
+    .meta-sep { color: var(--border); }
+    #last-updated { color: var(--text2); font-size: 10px; margin-left: auto; }
+
+    #auto-banner {
+      display: none; padding: 9px 24px; font-size: 11px; font-weight: 700;
+      background: var(--red-dim); border-bottom: 1px solid var(--red); color: var(--red);
+    }
+
+    main { padding: 20px 24px; display: flex; flex-direction: column; gap: 20px; }
+
+    .search-wrap { background: var(--bg2); border: 1px solid var(--border); border-radius: 10px; padding: 16px 20px; }
+    .search-row { display: flex; gap: 10px; align-items: center; flex-wrap: wrap; }
+    .search-input {
+      flex: 1; min-width: 220px; background: var(--bg3); border: 1px solid var(--border);
+      color: var(--text); font-family: var(--font); font-size: 13px; font-weight: 700;
+      padding: 9px 14px; border-radius: 8px; outline: none; letter-spacing: 1px;
+    }
+    .search-input::placeholder { color: var(--text2); font-weight: 400; letter-spacing: 0; }
+    .search-input:focus { border-color: var(--blue); box-shadow: 0 0 0 2px rgba(88,166,255,.15); }
+    .search-label { font-size: 11px; font-weight: 700; color: var(--text2); text-transform: uppercase; letter-spacing: 1px; margin-bottom: 10px; }
+
+    .section-title { display: flex; align-items: center; gap: 10px; font-size: 14px; font-weight: 700; margin-bottom: 14px; }
+    .badge { background: var(--bg3); border: 1px solid var(--border); padding: 1px 8px; border-radius: 10px; font-size: 10px; color: var(--text2); }
+    .section-hint { font-size: 10px; color: var(--text2); margin-left: auto; font-weight: 400; }
+
+    .picks-grid { display: grid; grid-template-columns: repeat(auto-fill, minmax(340px, 1fr)); gap: 14px; }
+    .pick-card { background: var(--bg2); border: 1px solid var(--border); border-radius: 10px; overflow: hidden; }
+    .pick-card.sig-BUY  { border-top: 3px solid var(--green); }
+    .pick-card.sig-SELL { border-top: 3px solid var(--red); }
+    .pick-card.sig-HOLD { border-top: 3px solid var(--yellow); }
+
+    .card-top { padding: 14px 16px 10px; display: flex; align-items: flex-start; justify-content: space-between; }
+    .card-ticker { font-size: 22px; font-weight: 800; letter-spacing: 1px; }
+    .card-price  { font-size: 16px; font-weight: 700; }
+
+    .pill { padding: 4px 10px; border-radius: 20px; font-size: 10px; font-weight: 800; white-space: nowrap; }
+    .pill-BUY  { background: var(--green-dim); color: var(--green); border: 1px solid var(--green); }
+    .pill-SELL { background: var(--red-dim);   color: var(--red);   border: 1px solid var(--red); }
+    .pill-HOLD { background: var(--yellow-dim);color: var(--yellow);border: 1px solid var(--yellow); }
+
+    .src-badge { font-size: 9px; font-weight: 700; padding: 2px 6px; border-radius: 4px; text-transform: uppercase; letter-spacing: .5px; margin-top: 4px; display: inline-block; }
+    .src-core         { color: var(--text2); background: var(--bg); border: 1px solid var(--border); }
+    .src-day_gainers  { color: var(--green);  background: var(--green-dim); border: 1px solid var(--green); }
+    .src-day_losers   { color: var(--red);    background: var(--red-dim);   border: 1px solid var(--red); }
+    .src-most_actives { color: var(--blue);   background: var(--blue-dim);  border: 1px solid var(--blue); }
+    .src-custom       { color: var(--purple); background: var(--bg);        border: 1px solid var(--purple); }
+
+    .conf-badge { font-size: 10px; font-weight: 700; padding: 2px 7px; border-radius: 4px; margin-top: 5px; display: inline-block; }
+    .conf-HIGH   { color: var(--green);  background: var(--green-dim);  border: 1px solid var(--green); }
+    .conf-MEDIUM { color: var(--yellow); background: var(--yellow-dim); border: 1px solid var(--yellow); }
+    .conf-LOW    { color: var(--text2);  background: var(--bg);         border: 1px solid var(--border); }
+
+    .chips { display: flex; flex-wrap: wrap; gap: 5px; padding: 0 16px 10px; }
+    .chip { font-size: 10px; padding: 2px 7px; border-radius: 4px; background: var(--bg); border: 1px solid var(--border); color: var(--text2); }
+    .chip.bull { background: #1a2e1a; color: #6ee77a; border-color: #2a5a2a; }
+    .chip.bear { background: var(--red-dim); color: #f08080; border-color: #4a2a2a; }
+
+    .reasoning-box { margin: 0 16px 12px; padding: 9px 12px; border-radius: 6px; background: var(--bg); border: 1px solid var(--border); font-size: 11px; color: var(--text2); line-height: 1.5; }
+
+    .exec-row { padding: 0 16px 14px; display: flex; align-items: center; gap: 8px; }
+    .exec-result { padding: 8px 12px; margin: 0 16px 14px; border-radius: 6px; font-size: 11px; line-height: 1.5; }
+    .exec-ok   { background: var(--green-dim); border: 1px solid var(--green); color: var(--green); }
+    .exec-fail { background: var(--red-dim);   border: 1px solid var(--red);   color: var(--red); }
+
+    .loading-state { display: flex; flex-direction: column; align-items: center; justify-content: center; padding: 60px 20px; gap: 14px; color: var(--text2); }
+    .spinner { width: 36px; height: 36px; border: 3px solid var(--border); border-top-color: var(--blue); border-radius: 50%; animation: spin .8s linear infinite; }
+    @keyframes spin { to { transform: rotate(360deg); } }
+
+    .acct-grid { display: grid; grid-template-columns: repeat(auto-fit, minmax(140px, 1fr)); gap: 12px; }
+    .acct-stat { background: var(--bg2); border: 1px solid var(--border); border-radius: 8px; padding: 10px 14px; }
+    .acct-label { font-size: 10px; color: var(--text2); text-transform: uppercase; letter-spacing: .5px; }
+    .acct-val { font-size: 18px; font-weight: 700; margin-top: 2px; }
+
+    .pick-card { cursor: pointer; transition: border-color .15s; }
+    .pick-card:hover { border-color: var(--blue); }
+    .card-hint { font-size: 9px; color: var(--text2); padding: 0 16px 10px; margin-top: -6px; }
+
+    .modal-overlay {
+      display: none; position: fixed; inset: 0; background: rgba(0,0,0,.6);
+      z-index: 1000; align-items: flex-start; justify-content: center; padding: 40px 16px; overflow-y: auto;
+    }
+    .modal-box {
+      position: relative; background: var(--bg2); border: 1px solid var(--border); border-radius: 12px;
+      max-width: 620px; width: 100%; padding: 24px; margin-bottom: 40px;
+    }
+    .modal-close {
+      position: absolute; top: 14px; right: 14px; background: var(--bg3); border: 1px solid var(--border);
+      color: var(--text2); width: 28px; height: 28px; border-radius: 6px; cursor: pointer; font-family: var(--font);
+    }
+    .modal-close:hover { color: var(--text); border-color: var(--blue); }
+    .modal-header { display: flex; align-items: center; gap: 10px; flex-wrap: wrap; padding-right: 30px; }
+    .modal-price { font-size: 15px; color: var(--text2); margin-top: 4px; }
+    .modal-summary { font-size: 12px; line-height: 1.6; color: var(--text); margin-top: 14px; }
+    .modal-verdict-summary {
+      font-size: 11px; line-height: 1.6; color: var(--text2); margin-top: 10px; padding: 10px 12px;
+      background: var(--bg); border: 1px solid var(--border); border-radius: 6px;
+    }
+    .detail-grid { display: flex; flex-direction: column; gap: 10px; margin-top: 18px; }
+    .detail-row { background: var(--bg); border: 1px solid var(--border); border-radius: 8px; padding: 12px 14px; }
+    .detail-row-top { display: flex; align-items: center; justify-content: space-between; margin-bottom: 6px; }
+    .detail-title { font-size: 12px; font-weight: 700; }
+    .detail-verdict { font-size: 9px; font-weight: 800; text-transform: uppercase; letter-spacing: .5px; padding: 2px 8px; border-radius: 10px; }
+    .v-bullish { color: var(--green);  background: var(--green-dim);  border: 1px solid var(--green); }
+    .v-bearish { color: var(--red);    background: var(--red-dim);    border: 1px solid var(--red); }
+    .v-neutral { color: var(--text2);  background: var(--bg3);        border: 1px solid var(--border); }
+    .detail-explain { font-size: 11.5px; line-height: 1.55; color: var(--text); }
+    .detail-plain { font-size: 10.5px; line-height: 1.55; color: var(--text2); margin-top: 6px; font-style: italic; }
+  </style>
+</head>
+<body>
+
+<header>
+  <div class="logo">
+    <span class="logo-icon">⚙️</span>
+    <div>
+      <div class="logo-text">TradePulse AutoTrader</div>
+      <div class="logo-sub">yfinance + pandas_ta screener · RSI/SMA/MACD/OBV/Bollinger · Alpaca bracket execution</div>
+    </div>
+  </div>
+  <div class="header-right">
+    <div class="status-badge">
+      <div class="dot" id="status-dot"></div>
+      <span id="status-text">Connecting...</span>
+    </div>
+    <div class="status-badge" id="alpaca-badge">
+      <div class="dot off" id="alpaca-dot"></div>
+      <span id="alpaca-text">Alpaca: —</span>
+    </div>
+    <div id="auto-toggle-wrap">
+      <span>Auto-Execute</span>
+      <label class="switch">
+        <input type="checkbox" id="auto-toggle" onchange="onAutoToggle(this)">
+        <span class="slider"></span>
+      </label>
+    </div>
+    <button class="btn btn-primary" id="refresh-btn" onclick="triggerRefresh()">↻ Rescan</button>
+  </div>
+</header>
+
+<div id="auto-banner">⚠ AUTO-EXECUTE IS ON — every HIGH-confidence BUY signal will automatically submit a real bracket order via Alpaca on the next scan.</div>
+
+<div class="meta-bar">
+  <div class="meta-item">Universe: <strong id="meta-count">—</strong></div>
+  <div class="meta-item">Last scan: <strong id="meta-time">—</strong></div>
+  <span class="meta-sep">|</span>
+  <div class="meta-item">Cash: <strong id="meta-cash">—</strong></div>
+  <div class="meta-item">Portfolio: <strong id="meta-portfolio">—</strong></div>
+  <span id="last-updated"></span>
+</div>
+
+<main>
+  <div class="search-wrap">
+    <div class="search-label">🔍 Scan Tickers</div>
+    <div class="search-row">
+      <input id="ticker-input" class="search-input" type="text"
+             placeholder="AAPL, MSFT, NVDA...  (comma-separated, blank = auto-discover top movers)"
+             autocomplete="off" spellcheck="false" onkeydown="if(event.key==='Enter')runScan()"/>
+      <button class="btn btn-primary" onclick="runScan()">Run Screen →</button>
+    </div>
+  </div>
+
+  <div>
+    <div class="section-title">
+      📊 Signal Board
+      <span class="badge" id="results-count">0</span>
+      <span class="section-hint">BUY / SELL / HOLD per trade-app.md decision matrix</span>
+    </div>
+    <div class="picks-grid" id="results-grid">
+      <div class="loading-state" style="grid-column:1/-1">
+        <div class="spinner"></div>
+        <div>Discovering top movers + screening universe — RSI, SMA50/200, MACD, Bollinger Bands, OBV...</div>
+      </div>
+    </div>
+  </div>
+</main>
+
+<div class="modal-overlay" id="detail-modal-overlay" onclick="if(event.target===this) closeDetail()">
+  <div class="modal-box" id="detail-modal-box"></div>
+</div>
+
+<script>
+const API = window.location.origin;
+let _pollTimer = null;
+let _lastResults = [];
+
+function fmtMoney(n) { return n == null ? '—' : '$' + Number(n).toLocaleString(undefined, {maximumFractionDigits: 2}); }
+
+async function fetchStatus() {
+  try {
+    const res = await fetch(`${API}/api/autotrader/status`);
+    const s = await res.json();
+    document.getElementById('auto-toggle').checked = !!s.auto_execute;
+    document.getElementById('auto-banner').style.display = s.auto_execute ? '' : 'none';
+
+    const alp = s.alpaca || {};
+    const dot = document.getElementById('alpaca-dot');
+    const txt = document.getElementById('alpaca-text');
+    if (alp.connected) {
+      dot.className = 'dot live';
+      txt.textContent = `Alpaca: connected`;
+      document.getElementById('meta-cash').textContent = fmtMoney(alp.cash);
+      document.getElementById('meta-portfolio').textContent = fmtMoney(alp.portfolio_value);
+    } else {
+      dot.className = 'dot off';
+      txt.textContent = 'Alpaca: not configured';
+      document.getElementById('meta-cash').textContent = '—';
+      document.getElementById('meta-portfolio').textContent = '—';
+    }
+  } catch (e) { /* status is best-effort */ }
+}
+
+async function fetchResults() {
+  try {
+    const res = await fetch(`${API}/api/autotrader/results`);
+    if (res.status === 202 || res.status === 503) {
+      const body = await res.json();
+      setStatus('scanning', body.message || 'Scanning...');
+      schedulePoll(8_000);
+      return;
+    }
+    if (!res.ok) { setStatus('error', `Error ${res.status}`); return; }
+    const data = await res.json();
+    render(data);
+    setStatus(data.running ? 'scanning' : 'live', data.running ? 'Scanning...' : 'Live');
+    schedulePoll(data.running ? 8_000 : 60_000);
+  } catch (e) {
+    setStatus('error', 'Backend offline — is autotrader server running on :8010?');
+    schedulePoll(15_000);
+  }
+}
+
+function schedulePoll(ms) {
+  clearTimeout(_pollTimer);
+  _pollTimer = setTimeout(() => { fetchResults(); fetchStatus(); }, ms);
+}
+
+function setStatus(state, text) {
+  document.getElementById('status-dot').className = 'dot ' + (state === 'live' ? 'live' : state === 'scanning' ? 'scanning' : '');
+  document.getElementById('status-text').textContent = text;
+}
+
+async function triggerRefresh() {
+  const btn = document.getElementById('refresh-btn');
+  btn.disabled = true; btn.textContent = '↻ Scanning...';
+  setStatus('scanning', 'Scanning...');
+  const raw = document.getElementById('ticker-input').value.trim();
+  const qs = raw ? `?tickers=${encodeURIComponent(raw)}` : '';
+  await fetch(`${API}/api/autotrader/run${qs}`, { method: 'POST' });
+  schedulePoll(3_000);
+  setTimeout(() => { btn.disabled = false; btn.textContent = '↻ Rescan'; }, 5_000);
+}
+
+function runScan() { triggerRefresh(); }
+
+async function onAutoToggle(el) {
+  if (el.checked) {
+    const ok = confirm(
+      'Enable Auto-Execute?\n\nEvery HIGH-confidence BUY signal found on the next scan will ' +
+      'automatically submit a real bracket order (limit entry, 3% stop-loss, 9% take-profit) ' +
+      'through your configured Alpaca account. Make sure APCA_API_BASE_URL points at the paper ' +
+      'endpoint unless you intend to trade live.'
+    );
+    if (!ok) { el.checked = false; return; }
+  }
+  await fetch(`${API}/api/autotrader/auto-execute`, {
+    method: 'POST', headers: { 'Content-Type': 'application/json' },
+    body: JSON.stringify({ enabled: el.checked }),
+  });
+  document.getElementById('auto-banner').style.display = el.checked ? '' : 'none';
+}
+
+function chgClass(v) { return v > 0 ? 'bull' : v < 0 ? 'bear' : ''; }
+
+const SRC_LABELS = { core: 'Core', day_gainers: 'Top Gainer', day_losers: 'Top Loser', most_actives: 'Most Active', custom: 'Custom' };
+function srcBadge(source) {
+  const key = SRC_LABELS[source] ? source : 'custom';
+  return `<span class="src-badge src-${key}">${SRC_LABELS[key]}</span>`;
+}
+
+function buildChips(m) {
+  const out = [];
+  if (m.above_200sma != null) out.push(`<span class="chip ${m.above_200sma ? 'bull' : 'bear'}">${m.above_200sma ? '▲' : '▼'} 200SMA</span>`);
+  if (m.macd_crossover != null) out.push(`<span class="chip ${m.macd_crossover ? 'bull' : ''}">MACD ${m.macd_crossover ? 'cross ↑' : '—'}</span>`);
+  if (m.high_volume != null) out.push(`<span class="chip ${m.high_volume ? 'bull' : ''}">Vol ${m.vol_ratio != null ? m.vol_ratio.toFixed(2) + 'x' : (m.high_volume ? 'high' : 'normal')}</span>`);
+  if (m.obv_trend_positive != null) out.push(`<span class="chip ${m.obv_trend_positive ? 'bull' : 'bear'}">OBV ${m.obv_trend_positive ? '↑' : '↓'}</span>`);
+  if (m.rsi != null) out.push(`<span class="chip">RSI ${m.rsi.toFixed(1)}</span>`);
+  if (m.bb_pct != null) out.push(`<span class="chip">BB ${(m.bb_pct * 100).toFixed(0)}%</span>`);
+  return out.join('');
+}
+
+function render(data) {
+  const results = data.results || [];
+  _lastResults = results;
+  document.getElementById('meta-count').textContent = results.length;
+  document.getElementById('meta-time').textContent = data.last_run ? new Date(data.last_run + 'Z').toLocaleTimeString() : '—';
+  document.getElementById('results-count').textContent = results.length;
+
+  const grid = document.getElementById('results-grid');
+  if (!results.length) {
+    grid.innerHTML = `<div class="loading-state" style="grid-column:1/-1">No results yet.</div>`;
+    return;
+  }
+
+  grid.innerHTML = results.map(r => {
+    const m = r.metrics || {};
+    const canExecute = r.signal === 'BUY' && r.confidence_score === 'HIGH' && !r.error;
+    const execBtn = canExecute
+      ? `<button class="btn btn-buy" onclick='executeTrade(${JSON.stringify(r.ticker)}, ${r.price})'>⚡ Execute Bracket Order</button>`
+      : '';
+    const execResult = r.trade_execution ? renderExecResult(r.trade_execution) : '';
+    return `
+    <div class="pick-card sig-${r.signal}" onclick='openDetail(${JSON.stringify(r.ticker)})'>
+      <div class="card-top">
+        <div>
+          <div class="card-ticker">${r.ticker}</div>
+          <div class="card-price">$${r.price != null ? r.price.toFixed(2) : '—'}</div>
+          ${srcBadge(r.source)}
+        </div>
+        <div style="text-align:right">
+          <span class="pill pill-${r.signal}">${r.signal}</span>
+          <div><span class="conf-badge conf-${r.confidence_score}">${r.confidence_score}</span></div>
+        </div>
+      </div>
+      <div class="chips">${buildChips(m)}</div>
+      <div class="reasoning-box">${r.reasoning || '—'}</div>
+      <div class="card-hint">Click for a plain-English breakdown of why →</div>
+      <div onclick="event.stopPropagation()">
+        ${execResult}
+        ${execBtn ? `<div class="exec-row">${execBtn}</div>` : ''}
+        <div id="exec-target-${r.ticker}"></div>
+      </div>
+    </div>`;
+  }).join('');
+}
+
+function renderExecResult(ex) {
+  if (ex.executed) {
+    return `<div class="exec-result exec-ok">✓ Order ${ex.order_id} submitted — ${ex.qty} sh @ $${ex.entry} · stop $${ex.stop_loss} · target $${ex.take_profit}</div>`;
+  }
+  return `<div class="exec-result exec-fail">✕ Not executed — ${ex.reason || 'unknown error'}</div>`;
+}
+
+async function executeTrade(ticker, price) {
+  const ok = confirm(`Submit a real bracket order for ${ticker} @ ~$${price}?\n\nEntry (limit) + 3% stop-loss + 9% take-profit, sized to 2% portfolio risk.`);
+  if (!ok) return;
+  const target = document.getElementById(`exec-target-${ticker}`);
+  target.innerHTML = `<div class="reasoning-box">Submitting order...</div>`;
+  try {
+    const res = await fetch(`${API}/api/autotrader/execute`, {
+      method: 'POST', headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ ticker, entry_price: price }),
+    });
+    const body = await res.json();
+    target.innerHTML = renderExecResult(body);
+  } catch (e) {
+    target.innerHTML = `<div class="exec-result exec-fail">✕ Request failed: ${e}</div>`;
+  }
+}
+
+const SIGNAL_GLOSSARY = {
+  BUY:  "The system believes this stock is likely to move up over the near term — this could be worth considering as a buy.",
+  SELL: "The system believes this stock is likely to move down over the near term — if you hold it, this may be worth considering as a sell or a hedge.",
+  HOLD: "The evidence is mixed right now. There's no strong edge in either direction, so the system suggests waiting rather than acting.",
+};
+const CONFIDENCE_GLOSSARY = {
+  HIGH:   "Confidence is HIGH — the move is backed by an unusually strong volume surge, not just a marginal signal.",
+  MEDIUM: "Confidence is MEDIUM — the signal clears the bar but isn't backed by an exceptional volume surge.",
+  LOW:    "Confidence is LOW — this is a weak lean, not a firm signal.",
+};
+
+function openDetail(ticker) {
+  const r = _lastResults.find(x => x.ticker === ticker);
+  if (!r) return;
+  const details = r.indicator_details || [];
+
+  const rows = details.length ? details.map(d => `
+    <div class="detail-row">
+      <div class="detail-row-top">
+        <span class="detail-title">${d.title}</span>
+        <span class="detail-verdict v-${d.verdict}">${d.verdict}</span>
+      </div>
+      <div class="detail-explain">${d.explanation}</div>
+      <div class="detail-plain">${d.plain}</div>
+    </div>
+  `).join('') : `<div class="detail-row">${r.reasoning || 'No detailed breakdown available for this ticker.'}</div>`;
+
+  document.getElementById('detail-modal-box').innerHTML = `
+    <button class="modal-close" onclick="closeDetail()">✕</button>
+    <div class="modal-header">
+      <div class="card-ticker">${r.ticker}</div>
+      <span class="pill pill-${r.signal}">${r.signal}</span>
+      <span class="conf-badge conf-${r.confidence_score}">${r.confidence_score}</span>
+      ${srcBadge(r.source)}
+    </div>
+    <div class="modal-price">$${r.price != null ? r.price.toFixed(2) : '—'}</div>
+    <div class="modal-summary">${SIGNAL_GLOSSARY[r.signal] || ''} ${CONFIDENCE_GLOSSARY[r.confidence_score] || ''}</div>
+    <div class="modal-verdict-summary">${r.verdict_summary || r.reasoning || ''}</div>
+    <div class="detail-grid">${rows}</div>
+  `;
+  document.getElementById('detail-modal-overlay').style.display = 'flex';
+}
+
+function closeDetail() {
+  document.getElementById('detail-modal-overlay').style.display = 'none';
+}
+
+document.addEventListener('keydown', (e) => { if (e.key === 'Escape') closeDetail(); });
+
+fetchResults();
+fetchStatus();
+</script>
+</body>
+</html>

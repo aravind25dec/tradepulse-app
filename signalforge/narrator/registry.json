@@ -1,0 +1,18 @@
+[
+  {
+    "version": "v1",
+    "ollama_tag": "signalforge-narrator:v1",
+    "base_model": "Qwen/Qwen2.5-0.5B-Instruct",
+    "dataset_path": "dataset\\v1.jsonl",
+    "n_examples": 9,
+    "trained_at_utc": "2026-07-25T17:23:35.345601+00:00"
+  },
+  {
+    "version": "v2",
+    "ollama_tag": "signalforge-narrator:v2",
+    "base_model": "Qwen/Qwen2.5-0.5B-Instruct",
+    "dataset_path": "dataset\\v2.jsonl",
+    "n_examples": 294,
+    "trained_at_utc": "2026-07-26T12:55:35.660897+00:00"
+  }
+]

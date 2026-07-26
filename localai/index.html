@@ -1,0 +1,558 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8"/>
+  <meta name="viewport" content="width=device-width,initial-scale=1.0"/>
+  <title>TradePulse Local AI</title>
+  <style>
+    :root{
+      --bg:#0d1117;--bg2:#161b22;--bg3:#1c2333;--border:#30363d;
+      --text:#e6edf3;--text2:#8b949e;
+      --green:#3fb950;--green-dim:#1a3a24;
+      --yellow:#d29922;--yellow-dim:#3a2e10;
+      --blue:#58a6ff;--blue-dim:#0d1f3c;
+      --purple:#bc8cff;--purple-dim:#1e1a2e;
+      --orange:#f0883e;--orange-dim:#2d1a00;
+      --red:#f85149;--red-dim:#3a1a1a;
+      --font:'SF Mono','Fira Code','Cascadia Code',monospace;
+    }
+    *{box-sizing:border-box;margin:0;padding:0;}
+    body{background:var(--bg);color:var(--text);font-family:var(--font);font-size:13px;
+         height:100vh;display:flex;flex-direction:column;overflow:hidden;}
+
+    header{background:var(--bg2);border-bottom:1px solid var(--border);
+           padding:10px 20px;display:flex;align-items:center;justify-content:space-between;flex-shrink:0;}
+    .logo{display:flex;align-items:center;gap:10px;}
+    .logo-icon{font-size:20px;}.logo-text{font-size:15px;font-weight:700;}
+    .logo-sub{font-size:10px;color:var(--text2);}
+    nav{display:flex;align-items:center;gap:6px;}
+    nav a{padding:5px 12px;border-radius:6px;text-decoration:none;color:var(--text2);
+          font-size:12px;font-weight:600;border:1px solid transparent;transition:all .15s;}
+    nav a:hover{color:var(--text);background:var(--bg3);border-color:var(--border);}
+    nav a.active{color:var(--purple);background:var(--purple-dim);border-color:var(--purple);}
+
+    #status-bar{background:var(--bg3);border-bottom:1px solid var(--border);
+                padding:7px 20px;display:flex;align-items:center;gap:10px;flex-shrink:0;font-size:11px;}
+    .pill{display:inline-flex;align-items:center;gap:5px;padding:3px 10px;
+          border-radius:20px;font-size:11px;font-weight:700;}
+    .pill.ok{background:var(--green-dim);border:1px solid var(--green);color:var(--green);}
+    .pill.bad{background:var(--bg);border:1px solid var(--border);color:var(--text2);}
+    .dot{width:6px;height:6px;border-radius:50%;}
+    .dot.on{background:var(--green);box-shadow:0 0 5px var(--green);animation:pulse 2s infinite;}
+    .dot.off{background:var(--text2);}
+    @keyframes pulse{0%,100%{opacity:1}50%{opacity:.4}}
+    .gap{flex:1;}
+    .cost-badge{font-size:10px;padding:2px 8px;border-radius:10px;font-weight:700;
+                background:var(--green-dim);border:1px solid var(--green);color:var(--green);}
+    .btn{padding:4px 12px;border-radius:6px;border:1px solid;font-size:11px;font-weight:700;
+         font-family:var(--font);cursor:pointer;transition:all .15s;}
+    .btn-ghost{background:var(--bg);border-color:var(--border);color:var(--text2);}
+    .btn-ghost:hover{border-color:var(--text);color:var(--text);}
+
+    /* setup notice */
+    #setup-notice{display:none;padding:12px 20px;font-size:12px;line-height:1.9;flex-shrink:0;
+                  background:var(--yellow-dim);border-bottom:1px solid var(--yellow);color:var(--yellow);}
+    #setup-notice code{background:var(--bg3);border:1px solid var(--border);
+                       border-radius:3px;padding:1px 6px;color:var(--orange);font-size:11px;}
+    #setup-notice ol{padding-left:20px;margin-top:6px;}
+    #setup-notice li{margin:2px 0;}
+
+    /* main layout */
+    #main{flex:1;overflow-y:auto;display:flex;gap:0;}
+    #main::-webkit-scrollbar{width:5px;}
+    #main::-webkit-scrollbar-thumb{background:var(--border);border-radius:3px;}
+
+    /* sidebar */
+    #sidebar{width:220px;flex-shrink:0;border-right:1px solid var(--border);
+             padding:14px;display:flex;flex-direction:column;gap:12px;overflow-y:auto;}
+    .sb-label{font-size:10px;font-weight:700;color:var(--text2);text-transform:uppercase;
+              letter-spacing:.5px;margin-bottom:4px;}
+    .model-select{width:100%;background:var(--bg3);border:1px solid var(--border);
+                  color:var(--text);font-family:var(--font);font-size:11px;padding:6px 8px;
+                  border-radius:6px;outline:none;}
+    .model-select:focus{border-color:var(--purple);}
+    .port-box{background:var(--bg3);border:1px solid var(--border);border-radius:6px;
+              padding:10px;font-size:11px;color:var(--text2);}
+    .port-box .ph{font-weight:700;color:var(--green);margin-bottom:4px;}
+    .port-ticker{display:flex;justify-content:space-between;padding:2px 0;border-bottom:1px solid var(--bg);}
+    .port-ticker:last-child{border:none;}
+    .port-empty{color:var(--text2);font-style:italic;}
+    .chips-sb{display:flex;flex-direction:column;gap:4px;}
+    .chip{padding:7px 10px;background:var(--bg2);border:1px solid var(--border);
+          border-radius:6px;font-size:11px;font-weight:600;color:var(--text2);
+          cursor:pointer;transition:all .15s;font-family:var(--font);text-align:left;}
+    .chip:hover{border-color:var(--purple);color:var(--purple);background:var(--purple-dim);}
+
+    /* chat area */
+    #chat-area{flex:1;display:flex;flex-direction:column;overflow:hidden;}
+    #chat-scroll{flex:1;overflow-y:auto;padding:16px 20px;display:flex;flex-direction:column;gap:14px;}
+    #chat-scroll::-webkit-scrollbar{width:5px;}
+    #chat-scroll::-webkit-scrollbar-thumb{background:var(--border);border-radius:3px;}
+
+    /* empty state */
+    #empty-state{flex:1;display:flex;flex-direction:column;align-items:center;
+                 justify-content:center;gap:16px;padding:40px;text-align:center;}
+    .empty-icon{font-size:44px;}.empty-title{font-size:18px;font-weight:700;}
+    .empty-sub{font-size:12px;color:var(--text2);max-width:360px;line-height:1.6;}
+
+    /* message */
+    .msg-row{display:flex;gap:10px;}
+    .msg-avatar{width:26px;height:26px;border-radius:50%;display:flex;align-items:center;
+                justify-content:center;font-size:12px;flex-shrink:0;margin-top:2px;}
+    .msg-avatar.user{background:var(--blue-dim);border:1px solid var(--blue);}
+    .msg-avatar.ai{background:var(--purple-dim);border:1px solid var(--purple);}
+    .msg-body{flex:1;min-width:0;}
+    .msg-label{font-size:10px;color:var(--text2);margin-bottom:4px;font-weight:600;}
+    .question-bubble{background:var(--bg3);border:1px solid var(--border);border-radius:7px;
+                     padding:9px 12px;font-size:12px;color:var(--text2);}
+    .response-box{background:var(--bg2);border:1px solid var(--border);border-radius:7px;
+                  padding:12px 14px;font-size:12px;line-height:1.7;white-space:pre-wrap;
+                  font-family:var(--font);}
+    /* section coloring for local AI (uses numbered sections, not markdown h2) */
+    .response-box{color:var(--text);}
+
+    .spin{display:inline-block;width:10px;height:10px;border:2px solid transparent;
+          border-top-color:currentColor;border-radius:50%;animation:spin .6s linear infinite;
+          margin-left:6px;vertical-align:middle;}
+    @keyframes spin{to{transform:rotate(360deg)}}
+
+    /* input */
+    #input-area{flex-shrink:0;background:var(--bg2);border-top:1px solid var(--border);padding:12px 20px;}
+    #input-row{display:flex;gap:8px;align-items:flex-end;}
+    #q-input{flex:1;background:var(--bg3);border:1px solid var(--border);border-radius:8px;
+             color:var(--text);font-family:var(--font);font-size:13px;padding:10px 14px;
+             resize:none;height:48px;outline:none;transition:border .15s;}
+    #q-input:focus{border-color:var(--purple);}
+    #q-input:disabled{opacity:.4;}
+    #send-btn{padding:12px 20px;background:var(--purple-dim);border:1px solid var(--purple);
+              color:var(--purple);border-radius:8px;font-family:var(--font);font-size:12px;
+              font-weight:700;cursor:pointer;transition:all .15s;white-space:nowrap;}
+    #send-btn:hover:not(:disabled){background:var(--purple);color:#000;}
+    #send-btn:disabled{opacity:.4;cursor:default;}
+
+    /* ── Usage widget ─────────────────────────────────────────────────────── */
+    #usage-pill{cursor:pointer;user-select:none;}
+    #usage-pill:hover{opacity:.85;}
+    #usage-panel{display:none;background:var(--bg2);border-bottom:1px solid var(--border);
+                 padding:14px 20px;font-size:11px;flex-shrink:0;}
+    .up-grid{display:grid;grid-template-columns:1fr 1fr 1fr;gap:12px;margin-bottom:12px;}
+    .up-stat{background:var(--bg3);border:1px solid var(--border);border-radius:6px;padding:9px 11px;}
+    .up-stat .lbl{font-size:10px;color:var(--text2);margin-bottom:3px;}
+    .up-stat .val{font-size:14px;font-weight:700;}
+    .up-stat .sub{font-size:10px;color:var(--text2);margin-top:2px;}
+    .up-bar-wrap{margin-bottom:10px;}
+    .up-bar-label{display:flex;justify-content:space-between;margin-bottom:4px;font-size:10px;color:var(--text2);}
+    .up-bar-track{height:5px;background:var(--bg3);border-radius:3px;overflow:hidden;}
+    .up-bar-fill{height:100%;border-radius:3px;transition:width .3s;}
+    .up-apps{margin-bottom:10px;font-size:11px;}
+    .up-app-row{display:flex;gap:10px;padding:2px 0;border-bottom:1px solid var(--bg3);}
+    .up-app-row:last-child{border:none;}
+    .up-app-name{width:90px;color:var(--text2);font-weight:600;text-transform:capitalize;}
+    .up-footer{display:flex;align-items:center;gap:8px;flex-wrap:wrap;margin-top:4px;}
+    .plan-btn{padding:2px 10px;border-radius:12px;border:1px solid var(--border);
+              background:var(--bg3);color:var(--text2);font-size:10px;font-weight:700;
+              font-family:var(--font);cursor:pointer;transition:all .12s;}
+    .plan-btn.active{border-color:var(--green);color:var(--green);background:var(--green-dim);}
+    .plan-btn:hover:not(.active){border-color:var(--text);color:var(--text);}
+    .rst-btn{padding:2px 10px;border-radius:12px;border:1px solid var(--red);
+             background:transparent;color:var(--red);font-size:10px;font-weight:700;
+             font-family:var(--font);cursor:pointer;}
+    .rst-btn:hover{background:var(--red-dim);}
+  </style>
+</head>
+<body>
+
+<header>
+  <div class="logo">
+    <span class="logo-icon">🏠</span>
+    <span>
+      <div class="logo-text">Local AI Analyst</div>
+      <div class="logo-sub">Offline · Ollama + LangChain · Zero token cost</div>
+    </span>
+  </div>
+  <nav>
+    <a href="http://localhost:8003">Hot Picks</a>
+    <a href="http://localhost:8003/agent">Agent</a>
+    <a href="http://localhost:8007">Analyst</a>
+    <a href="http://localhost:8008" class="active">Local AI</a>
+  </nav>
+</header>
+
+<div id="status-bar">
+  <span id="ollama-pill" class="pill bad"><span class="dot off"></span>Ollama</span>
+  <span id="port-pill"   class="pill bad"><span class="dot off"></span>Portfolio</span>
+  <span class="cost-badge">$0.00 / query</span>
+  <span class="gap"></span>
+  <span id="mem-badge" title="Analyses stored in local memory" style="font-size:10px;color:var(--text2);cursor:pointer" onclick="clearMemory()">🧠 0 memories</span>
+  <span id="usage-pill" class="pill bad" onclick="toggleUsagePanel()" title="Claude token usage — click for details">📊 Claude Usage</span>
+  <button class="btn btn-ghost" onclick="refreshStatus()">↻ Refresh</button>
+</div>
+
+<div id="usage-panel"></div>
+<div id="setup-notice">
+  ⚠ <strong>Ollama not running.</strong> Set it up once to use free local AI analysis:
+  <ol>
+    <li>Install Ollama: <code>winget install Ollama.Ollama</code> — or download from <strong>ollama.ai</strong></li>
+    <li>Pull a model (pick one): <code>ollama pull llama3.1:8b</code> (best, ~4.7 GB) &nbsp;|&nbsp; <code>ollama pull phi3:mini</code> (fast, ~2.3 GB)</li>
+    <li>Ollama starts automatically. Then click ↻ Refresh above.</li>
+  </ol>
+</div>
+
+<div id="main">
+  <!-- Sidebar -->
+  <div id="sidebar">
+    <div>
+      <div class="sb-label">Model</div>
+      <select class="model-select" id="model-select">
+        <option value="llama3.1:8b">llama3.1:8b (recommended)</option>
+        <option value="phi3:mini">phi3:mini (fast)</option>
+        <option value="mistral:7b">mistral:7b</option>
+      </select>
+      <div id="model-note" style="font-size:10px;color:var(--text2);margin-top:4px;"></div>
+    </div>
+
+    <div>
+      <div class="sb-label">Portfolio</div>
+      <div class="port-box">
+        <div class="ph" id="port-header">Not loaded</div>
+        <div id="port-tickers"><span class="port-empty">Start hotpicks (port 8003) to auto-load your Robinhood portfolio.</span></div>
+      </div>
+    </div>
+
+    <div>
+      <div class="sb-label">Quick Questions</div>
+      <div class="chips-sb" id="sidebar-chips"></div>
+    </div>
+  </div>
+
+  <!-- Chat area -->
+  <div id="chat-area">
+    <div id="chat-scroll">
+      <div id="empty-state">
+        <div class="empty-icon">🏠</div>
+        <div class="empty-title">Local AI Analyst</div>
+        <div class="empty-sub">
+          Powered by Ollama on your machine. No cloud, no API fees, no token limits.
+          Reads your portfolio from the hotpicks cache automatically.
+        </div>
+      </div>
+    </div>
+
+    <div id="input-area">
+      <div id="input-row">
+        <textarea id="q-input" placeholder="Ask about your investments (analyzed locally)…" rows="1"
+          onkeydown="if(event.key==='Enter'&&!event.shiftKey){event.preventDefault();send();}"></textarea>
+        <button id="send-btn" onclick="send()">Analyze 🏠</button>
+      </div>
+    </div>
+  </div>
+</div>
+
+<script>
+const CHIPS = [
+  "What should I buy for max profit this week?",
+  "Which positions should I reduce or exit?",
+  "What's my biggest risk right now?",
+  "Is my portfolio well diversified?",
+  "What upcoming events should I watch?",
+];
+
+let running    = false;
+let portfolio  = [];
+let ollamaOk   = false;
+let _abortCtrl = null;
+let _ollamaEverOk = false;   // sticky — don't flip red while busy with inference
+
+// ── Status ────────────────────────────────────────────────────────────────────
+async function refreshStatus() {
+  try {
+    const r = await fetch('/api/localai/status');
+    const d = await r.json();
+    ollamaOk = d.ollama_available;
+    if (ollamaOk) _ollamaEverOk = true;
+    // Don't flip to red while Ollama is busy with inference — it may miss the health ping
+    const showOk = ollamaOk || (running && _ollamaEverOk);
+
+    const op = document.getElementById('ollama-pill');
+    op.className = 'pill ' + (showOk ? 'ok' : 'bad');
+    op.innerHTML = `<span class="dot ${showOk?'on':'off'}"></span>Ollama${running&&!ollamaOk?' (busy)':''}`;
+
+    document.getElementById('setup-notice').style.display = showOk ? 'none' : 'block';
+
+    // Populate model selector from available models
+    if (ollamaOk && d.models.length > 0) {
+      const sel = document.getElementById('model-select');
+      const prev = sel.value;
+      sel.innerHTML = '';
+      // tradepulse-analyst first, then fast text models, vision/thinking last
+      const sorted = [...d.models].sort((a, b) => {
+        const rank = m => m==='tradepulse-analyst' ? 0 : /vl|vision|think|r1/i.test(m) ? 2 : 1;
+        return rank(a) - rank(b);
+      });
+      sorted.forEach(m => {
+        const opt = document.createElement('option');
+        opt.value = m;
+        const isTradePulse = m === 'tradepulse-analyst';
+        const isVision = /vl|vision/i.test(m);
+        const isThink  = /think|r1/i.test(m);
+        const tag = isTradePulse ? ' ★ (custom)' : isVision ? ' (vision · slow)' : isThink ? ' (thinking · slow)' : ' ⚡';
+        opt.textContent = m + tag;
+        if (m === prev) opt.selected = true;
+        sel.appendChild(opt);
+      });
+      // Default to first (custom/fastest) model on first load
+      if (!prev || !sorted.includes(prev)) sel.selectedIndex = 0;
+      document.getElementById('model-note').textContent =
+        `${d.models.length} model${d.models.length!==1?'s':''} available`;
+    } else if (ollamaOk) {
+      document.getElementById('model-note').textContent =
+        'No models pulled yet. Run: ollama pull gemma3:4b';
+    }
+
+    // Portfolio — grey (not red) when hotpicks isn't running
+    const pp = document.getElementById('port-pill');
+    const portOk = d.portfolio_count > 0;
+    pp.className = 'pill ' + (portOk ? 'ok' : 'bad');
+    pp.innerHTML = `<span class="dot ${portOk?'on':'off'}"></span>Portfolio${portOk?'':' (no hotpicks)'}`;
+
+    // Load portfolio details
+    await loadPortfolio();
+  } catch(e) { console.error(e); }
+}
+
+async function loadPortfolio() {
+  try {
+    const r = await fetch('/api/localai/portfolio');
+    if (!r.ok) return;
+    const d = await r.json();
+    portfolio = d.positions || [];
+
+    const header  = document.getElementById('port-header');
+    const tickers = document.getElementById('port-tickers');
+    if (portfolio.length === 0) {
+      header.textContent  = 'No portfolio';
+      tickers.innerHTML   = '<span class="port-empty">Start hotpicks on port 8003.</span>';
+    } else {
+      header.textContent = `${portfolio.length} position${portfolio.length!==1?'s':''}`;
+      tickers.innerHTML = portfolio.map(p =>
+        `<div class="port-ticker"><span>${p.ticker}</span><span style="color:var(--text2)">${p.quantity}@$${p.avg_cost}</span></div>`
+      ).join('');
+    }
+  } catch(e) { console.error(e); }
+}
+
+// ── Chips ─────────────────────────────────────────────────────────────────────
+function renderChips() {
+  const el = document.getElementById('sidebar-chips');
+  el.innerHTML = '';
+  CHIPS.forEach(q => {
+    const b = document.createElement('button');
+    b.className = 'chip'; b.textContent = q;
+    b.onclick = () => { document.getElementById('q-input').value = q; send(); };
+    el.appendChild(b);
+  });
+}
+
+// ── Send ──────────────────────────────────────────────────────────────────────
+async function send() {
+  if (running) return;
+  const q = document.getElementById('q-input').value.trim();
+  if (!q) return;
+  if (!ollamaOk) { alert('Ollama is not running. Follow the setup instructions above.'); return; }
+
+  const model = document.getElementById('model-select').value;
+  if (!model) { alert('No model available. Pull one: ollama pull llama3.1:8b'); return; }
+
+  running = true;
+  document.getElementById('send-btn').disabled  = true;
+  document.getElementById('q-input').disabled   = true;
+  document.getElementById('q-input').value      = '';
+  document.getElementById('empty-state').style.display = 'none';
+
+  // User bubble
+  const scroll = document.getElementById('chat-scroll');
+  const uRow   = document.createElement('div');
+  uRow.className = 'msg-row';
+  uRow.innerHTML = `<div class="msg-avatar user">👤</div>
+    <div class="msg-body">
+      <div class="msg-label">You</div>
+      <div class="question-bubble">${q.replace(/</g,'&lt;')}</div>
+    </div>`;
+  scroll.appendChild(uRow);
+
+  // AI bubble
+  const aRow = document.createElement('div');
+  aRow.className = 'msg-row';
+  const modelShort = model.split(':')[0];
+  aRow.innerHTML = `<div class="msg-avatar ai">🏠</div>
+    <div class="msg-body">
+      <div class="msg-label">${modelShort} (local) <span class="spin" id="ai-spin"></span> <span id="ai-status" style="font-size:10px;color:var(--text2)">Loading model…</span></div>
+      <div class="response-box" id="ai-body"></div>
+    </div>`;
+  scroll.appendChild(aRow);
+  aRow.scrollIntoView({behavior:'smooth',block:'start'});
+
+  // Change status text to "Generating…" after first token arrives
+  let firstToken = true;
+  const setStatus = (txt) => {
+    const el = document.getElementById('ai-status');
+    if (el) el.textContent = txt;
+  };
+
+  // Elapsed timer
+  const t0 = Date.now();
+  const timer = setInterval(() => {
+    const s = Math.floor((Date.now()-t0)/1000);
+    setStatus(firstToken ? `Loading model… ${s}s` : `Generating… ${s}s`);
+  }, 1000);
+
+  const body = document.getElementById('ai-body');
+  let rawText = '';
+
+  _abortCtrl = new AbortController();
+  // Show abort button
+  document.getElementById('send-btn').textContent = '✕ Stop';
+  document.getElementById('send-btn').disabled = false;
+  document.getElementById('send-btn').onclick = () => { _abortCtrl && _abortCtrl.abort(); };
+
+  try {
+    const resp = await fetch('/api/localai/analyze', {
+      method: 'POST',
+      headers: {'Content-Type':'application/json'},
+      body: JSON.stringify({ question: q, model, portfolio }),
+      signal: _abortCtrl.signal,
+    });
+
+    const reader  = resp.body.getReader();
+    const decoder = new TextDecoder();
+    let   buf     = '';
+
+    while (true) {
+      const {done, value} = await reader.read();
+      if (done) break;
+      buf += decoder.decode(value, {stream: true});
+      const lines = buf.split('\n');
+      buf = lines.pop();
+      for (const line of lines) {
+        if (!line.startsWith('data:')) continue;
+        const raw = line.slice(5).trim();
+        if (raw === '[DONE]') { done2(); return; }
+        try {
+          const ev = JSON.parse(raw);
+          if (ev.error) body.textContent += `\n\n⚠ Error: ${ev.error}`;
+          if (ev.text)  {
+            if (firstToken) { firstToken = false; setStatus('Generating…'); }
+            rawText += ev.text;
+            body.textContent = rawText;
+            body.scrollIntoView({behavior:'smooth',block:'nearest'});
+          }
+        } catch(e) {}
+      }
+    }
+  } catch(e) {
+    if (e.name !== 'AbortError')
+      body.textContent += `\n\n⚠ Connection error: ${e.message}`;
+    else
+      body.textContent += rawText ? '\n\n[stopped]' : '\n[cancelled]';
+  }
+  done2();
+
+  function done2() {
+    clearInterval(timer);
+    running = false;
+    _abortCtrl = null;
+    const sp = document.getElementById('ai-spin');
+    if (sp) sp.remove();
+    const st = document.getElementById('ai-status');
+    if (st) st.remove();
+    document.getElementById('send-btn').textContent = 'Analyze 🏠';
+    document.getElementById('send-btn').disabled = false;
+    document.getElementById('send-btn').onclick = send;
+    document.getElementById('q-input').disabled  = false;
+    document.getElementById('q-input').focus();
+    fetchMemory();
+  }
+}
+
+// ── Memory badge ─────────────────────────────────────────────────────────────
+async function fetchMemory() {
+  try {
+    const r = await fetch('/api/localai/memory');
+    if (!r.ok) return;
+    const d = await r.json();
+    const el = document.getElementById('mem-badge');
+    if (el) el.textContent = `🧠 ${d.count} ${d.count===1?'memory':'memories'}`;
+  } catch(e) {}
+}
+
+async function clearMemory() {
+  const el = document.getElementById('mem-badge');
+  const cur = el ? el.textContent : '';
+  if (cur.includes('0 mem')) return;
+  if (!confirm('Clear all stored analyses from local memory?')) return;
+  await fetch('/api/localai/memory', {method:'DELETE'});
+  if (el) el.textContent = '🧠 0 memories';
+}
+
+// ── Init ──────────────────────────────────────────────────────────────────────
+renderChips();
+refreshStatus();
+fetchMemory();
+setInterval(refreshStatus, 30000);
+setInterval(fetchMemory, 15000);
+
+// ── Usage widget ──────────────────────────────────────────────────────────────
+let _usageOpen=false,_usageData=null;
+function _fmt(n){if(n>=1e6)return(n/1e6).toFixed(1)+'M';if(n>=1000)return(n/1000).toFixed(1)+'k';return String(n||0);}
+function _fmtDate(iso){if(!iso)return '—';return new Date(iso).toLocaleDateString('en-US',{month:'short',day:'numeric'});}
+function _fmtMin(m){if(m>=60)return Math.floor(m/60)+'h '+(m%60)+'m';return m+'m';}
+async function fetchUsage(){
+  try{
+    const r=await fetch('/api/usage');if(!r.ok)return;
+    _usageData=await r.json();const d=_usageData;
+    const pct=d.h5_usage_pct||0;
+    const col=pct>=80?'#f85149':pct>=50?'#d29922':'#3fb950';
+    const p=document.getElementById('usage-pill');
+    if(p)p.innerHTML=`📊 ${_fmt(d.h5_total_tokens||0)} <span style="color:var(--text2);font-weight:400">5h</span> &middot; <span style="color:${col}">${pct}%</span>`;
+    if(_usageOpen)_renderUsagePanel();
+  }catch(e){console.warn('usage:',e);}
+}
+function _renderUsagePanel(){
+  const d=_usageData;const panel=document.getElementById('usage-panel');if(!d||!panel)return;
+  const h5p=d.h5_usage_pct||0;const wkp=d.week_usage_pct||0;
+  const hfc=h5p>=80?'var(--red)':h5p>=50?'var(--yellow)':'var(--green)';
+  const wfc=wkp>=80?'var(--red)':wkp>=50?'var(--yellow)':'var(--green)';
+  const apps=d.apps||{};
+  const ar=Object.keys(apps).length?Object.entries(apps).map(([n,a])=>`<div class="up-app-row"><span class="up-app-name">${n}</span><span>${_fmt((a.input||0)+(a.output||0))} tok · ${a.requests||0} req</span></div>`).join(''):'<span style="color:var(--text2)">No usage yet (Ollama is free).</span>';
+  const lr=d.last_request_at?new Date(d.last_request_at).toLocaleString():'None';
+  const resetIn=d.h5_reset_in_min!=null?_fmtMin(d.h5_reset_in_min):'—';
+  panel.innerHTML=`
+    <div class="up-bar-wrap" style="margin-bottom:14px">
+      <div class="up-bar-label" style="font-size:11px">
+        <span style="font-weight:700;color:var(--text)">5-hour window (Claude, other apps)</span>
+        <span style="color:${hfc};font-weight:700">${h5p}% · ${_fmt(d.h5_total_tokens||0)} / ${_fmt(d.h5_limit||0)} tokens · resets in ${resetIn}</span>
+      </div>
+      <div class="up-bar-track" style="height:8px"><div class="up-bar-fill" style="width:${Math.min(h5p,100)}%;background:${hfc}"></div></div>
+    </div>
+    <div class="up-grid">
+      <div class="up-stat"><div class="lbl">5h window</div><div class="val">${_fmt(d.h5_total_tokens||0)}</div><div class="sub">${d.h5_requests||0} req · resets in ${resetIn}</div></div>
+      <div class="up-stat"><div class="lbl">Today</div><div class="val">${_fmt(d.today_total_tokens||0)}</div><div class="sub">${d.today_requests||0} requests</div></div>
+      <div class="up-stat"><div class="lbl">This week</div><div class="val">${_fmt(d.week_total_tokens||0)}</div><div class="sub">${d.week_requests||0} req · last: ${lr.split(',')[0]||'—'}</div></div>
+    </div>
+    <div class="up-bar-wrap">
+      <div class="up-bar-label"><span>Weekly (${d.plan||'Pro'}): ${_fmt(d.plan_limit_weekly||0)} tokens</span><span>${wkp}% · resets ${_fmtDate(d.week_reset)}</span></div>
+      <div class="up-bar-track"><div class="up-bar-fill" style="width:${Math.min(wkp,100)}%;background:${wfc}"></div></div>
+    </div>
+    <div class="up-apps" style="margin-top:10px">${ar}</div>
+    <div class="up-footer"><span style="font-size:10px;color:var(--text2)">Plan:</span>
+      <button class="plan-btn ${d.plan==='Pro'?'active':''}" onclick="_setPlan('Pro')">Pro (1M/5h · 5M/wk)</button>
+      <button class="plan-btn ${d.plan==='Max'?'active':''}" onclick="_setPlan('Max')">Max (5M/5h · 25M/wk)</button>
+      <span style="flex:1"></span><button class="rst-btn" onclick="_resetUsage()">Reset Stats</button></div>`;
+}
+function toggleUsagePanel(){_usageOpen=!_usageOpen;const p=document.getElementById('usage-panel');if(!p)return;if(_usageOpen){_renderUsagePanel();p.style.display='block';}else p.style.display='none';}
+async function _setPlan(plan){await fetch('/api/usage/plan',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({plan})});await fetchUsage();}
+async function _resetUsage(){if(!confirm('Reset all Claude usage statistics?'))return;await fetch('/api/usage/reset',{method:'POST'});await fetchUsage();}
+fetchUsage();setInterval(fetchUsage,60000);
+</script>
+</body>
+</html>

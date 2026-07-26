@@ -16,6 +16,7 @@ earnings calendars, and SEC 8-K corporate event detection.
 - **News feed** — NewsAPI headlines per ticker
 - **SEC 8-K watcher** — detects M&A, contract awards, definitive agreements from EDGAR
 - **Earnings calendar** — upcoming reports with EPS estimates and surprise detection (Finnhub)
+- **Stock screener** — standalone screener UI served on port 8001
 - **Both US stocks and crypto** — configure your watchlist in `.env`
 - **WebSocket** — all data streams live to the React dashboard
 
@@ -35,24 +36,64 @@ earnings calendars, and SEC 8-K corporate event detection.
 `ANTHROPIC_API_KEY` unlocks AI sentiment. Without it, signals run on technicals only.
 All others are optional — the app degrades gracefully.
 
-### 2. Backend setup
+---
+
+### Option A — One-command startup (after first-time setup below)
+
+**Windows:**
+```bat
+start.bat
+```
+
+**Mac / Linux:**
+```bash
+bash start.sh
+```
+
+This opens three terminal windows:
+| Service | URL |
+|---------|-----|
+| TradePulse Backend | http://localhost:8000 · [API docs](http://localhost:8000/docs) |
+| Screener API | http://localhost:8002 · [API docs](http://localhost:8002/docs) |
+| React Dashboard | http://localhost:3000 |
+
+---
+
+### Option B — Manual setup (first time)
+
+#### 2. Backend
 
 ```bash
 cd backend
-cp .env.example .env
+cp .env.example .env        # Windows: copy .env.example .env
 # Fill in your API keys in .env
 
 python -m venv venv
-source venv/bin/activate        # Windows: venv\Scripts\activate
-pip install -r requirements.txt
+# Activate the venv:
+source venv/bin/activate    # Mac / Linux
+venv\Scripts\activate       # Windows cmd
+.\venv\Scripts\Activate.ps1 # Windows PowerShell
 
-uvicorn main:app --reload --port 8000
+pip install -r requirements.txt
+python -m uvicorn main:app --reload --port 8000
 ```
 
-The backend starts at http://localhost:8000
-API docs: http://localhost:8000/docs
+Backend starts at http://localhost:8000 — API docs at http://localhost:8000/docs
 
-### 3. Frontend setup
+#### 3. Screener API
+
+The screener shares the same Python venv as the backend.
+
+```bash
+# In a new terminal (venv already activated from step 2, or re-activate it)
+cd screener
+pip install -r requirements.txt
+python -m uvicorn main:app --reload --port 8002
+```
+
+Screener API at http://localhost:8001 — open `screener/index.html` in your browser for the UI.
+
+#### 4. Frontend
 
 ```bash
 cd frontend
@@ -69,6 +110,8 @@ Dashboard opens at http://localhost:3000
 ```
 backend/
   main.py              FastAPI app + WebSocket hub
+  .env                 API keys (copy from .env.example)
+  requirements.txt     Python dependencies
   ingestion/
     prices.py          yfinance poller (60s interval) → store + broadcast
     news.py            NewsAPI + SEC EDGAR 8-K watcher (10min interval)
@@ -80,23 +123,38 @@ backend/
   db/
     store.py           In-memory store (swap for TimescaleDB in production)
 
+screener/
+  main.py              FastAPI screener API (port 8001)
+  screener_engine.py   Scanning logic
+  index.html           Standalone screener UI
+  requirements.txt     Python dependencies (shares backend venv)
+
+signalforge/           Locally-trained stock predictor (port 8011) — see signalforge/README.md
+  data/, features/, train/, models/registry/   Historical data → features → versioned LightGBM classifier
+  agent_engine.py, live_context.py             Claude Code CLI agent for live price/sentiment context
+  pipeline.py                                  LangGraph pipeline fusing the trained model + live context
+  main.py, index.html                          FastAPI app + UI
+
 frontend/
   src/
     App.jsx            Main dashboard layout (3-column grid)
     useTradeSocket.js  WebSocket hook with auto-reconnect
     components/
-      SignalPanel.jsx  Watchlist with signals + confidence bars
-      PriceChart.jsx   Recharts area chart + indicator strip
-      NewsStream.jsx   Live news feed per ticker
+      SignalPanel.jsx       Watchlist with signals + confidence bars
+      PriceChart.jsx        Recharts area chart + indicator strip
+      NewsStream.jsx        Live news feed per ticker
       EarningsCalendar.jsx  Upcoming earnings table
-      EventFeed.jsx    M&A / contract / SEC event feed
+      EventFeed.jsx         M&A / contract / SEC event feed
+
+start.bat              Windows one-click launcher
+start.sh               Mac/Linux one-click launcher
 ```
 
 ---
 
 ## Customise your watchlist
 
-Edit `.env`:
+Edit `backend/.env`:
 
 ```env
 STOCK_WATCHLIST=AAPL,TSLA,NVDA,MSFT,AMZN,GOOGL
@@ -124,7 +182,7 @@ CRYPTO_WATCHLIST=BTC-USD,ETH-USD,SOL-USD,DOGE-USD
 
 ## Backtesting
 
-Run from the backend directory:
+Run from the backend directory (venv activated):
 
 ```python
 import yfinance as yf

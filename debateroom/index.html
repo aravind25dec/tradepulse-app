@@ -1,0 +1,942 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>TradePulse DebateRoom</title>
+  <script src="https://cdn.jsdelivr.net/npm/marked/marked.min.js"></script>
+  <style>
+    :root {
+      --bg:     #0d1117; --bg2:#161b22; --bg3:#1c2333; --bg4:#21262d;
+      --border: #30363d; --border2:#21262d;
+      --text:   #e6edf3; --text2:#8b949e; --text3:#6e7681;
+      --green:  #3fb950; --green-dim:#1a3a24; --green2:#56d364;
+      --red:    #f85149; --red-dim:#3a1a1a;
+      --yellow: #d29922; --yellow-dim:#3a2e10;
+      --blue:   #58a6ff; --blue-dim:#0d1f3c;
+      --purple: #bc8cff; --purple-dim:#1e1a2e;
+      --orange: #f0883e; --orange-dim:#2d1a0a;
+      --teal:   #39d353; --teal-dim:#0d2a14;
+      --font:   'SF Mono','Fira Code','Cascadia Code',monospace;
+    }
+    *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+
+    body {
+      background: var(--bg); color: var(--text); font-family: var(--font);
+      font-size: 13px; height: 100vh; display: flex; flex-direction: column; overflow: hidden;
+    }
+
+    /* ── Header ── */
+    header {
+      background: var(--bg2); border-bottom: 1px solid var(--border);
+      padding: 10px 20px; display: flex; align-items: center;
+      justify-content: space-between; flex-shrink: 0;
+    }
+    .logo { display: flex; align-items: center; gap: 10px; text-decoration: none; color: inherit; }
+    .logo-icon { font-size: 18px; }
+    .logo-text { font-size: 14px; font-weight: 700; }
+    .logo-sub  { font-size: 10px; color: var(--text2); }
+    nav { display: flex; align-items: center; gap: 4px; }
+    nav a {
+      padding: 4px 11px; border-radius: 6px; text-decoration: none;
+      color: var(--text2); font-size: 11px; font-weight: 600;
+      border: 1px solid transparent; transition: all .15s;
+    }
+    nav a:hover { color: var(--text); background: var(--bg3); border-color: var(--border); }
+    nav a.active { color: var(--purple); background: var(--purple-dim); border-color: var(--purple); }
+
+    /* ── Status bar ── */
+    #status-bar {
+      background: var(--bg3); border-bottom: 1px solid var(--border);
+      padding: 7px 20px; display: flex; align-items: center; gap: 10px;
+      flex-shrink: 0; font-size: 11px;
+    }
+    .pill {
+      display: inline-flex; align-items: center; gap: 5px; padding: 3px 10px;
+      border-radius: 20px; font-size: 11px; font-weight: 700;
+    }
+    .pill.ok    { background: var(--green-dim); border: 1px solid var(--green); color: var(--green); }
+    .pill.bad   { background: var(--bg); border: 1px solid var(--border); color: var(--text2); }
+    .pill.warn  { background: var(--yellow-dim); border: 1px solid var(--yellow); color: var(--yellow); }
+    .dot { width: 6px; height: 6px; border-radius: 50%; flex-shrink: 0; }
+    .dot.on  { background: var(--green); box-shadow: 0 0 5px var(--green); animation: pulse 2s infinite; }
+    .dot.off { background: var(--text2); }
+    @keyframes pulse { 0%,100%{opacity:1} 50%{opacity:.4} }
+    .gap { flex: 1; }
+    .btn {
+      padding: 4px 12px; border-radius: 6px; border: 1px solid; font-size: 11px;
+      font-weight: 700; font-family: var(--font); cursor: pointer; transition: all .15s;
+    }
+    .btn-ghost { background: var(--bg); border-color: var(--border); color: var(--text2); }
+    .btn-ghost:hover { border-color: var(--text); color: var(--text); }
+    .btn-ghost:disabled { opacity: .35; cursor: default; }
+
+    /* ── Setup notice ── */
+    #setup-notice { display: none; padding: 10px 20px; font-size: 12px; line-height: 1.7; flex-shrink: 0; }
+    #setup-notice.warn { color: var(--yellow); background: var(--yellow-dim); border-bottom: 1px solid var(--yellow); }
+    #setup-notice.info { color: var(--blue);   background: var(--blue-dim);   border-bottom: 1px solid var(--blue); }
+    #setup-notice code {
+      background: var(--bg3); border: 1px solid var(--border);
+      border-radius: 3px; padding: 1px 6px; color: var(--orange); font-size: 11px;
+    }
+
+    /* ── Layout ── */
+    #layout { flex: 1; display: flex; overflow: hidden; }
+
+    /* ── Debate area ── */
+    #debate-area {
+      flex: 1; overflow-y: auto; padding: 20px 24px;
+      display: flex; flex-direction: column; gap: 0;
+    }
+    #debate-area::-webkit-scrollbar { width: 5px; }
+    #debate-area::-webkit-scrollbar-thumb { background: var(--border); border-radius: 3px; }
+
+    /* Empty state */
+    #empty-state {
+      flex: 1; display: flex; flex-direction: column;
+      align-items: center; justify-content: center; gap: 24px; padding: 40px;
+      text-align: center;
+    }
+    .empty-icon  { font-size: 48px; }
+    .empty-title { font-size: 20px; font-weight: 700; }
+    .empty-sub   { font-size: 12px; color: var(--text2); max-width: 480px; line-height: 1.7; }
+    .chips { display: flex; flex-wrap: wrap; gap: 8px; justify-content: center; max-width: 640px; }
+    .chip {
+      padding: 7px 14px; background: var(--bg2); border: 1px solid var(--border);
+      border-radius: 20px; font-size: 11px; font-weight: 600; color: var(--text2);
+      cursor: pointer; transition: all .15s; font-family: var(--font);
+    }
+    .chip:hover { border-color: var(--purple); color: var(--purple); background: var(--purple-dim); }
+    .chip.rh { border-color: #28a745; color: #28a745; background: #0d2a14; }
+    .chip.rh:hover { border-color: var(--green2); color: var(--green2); }
+
+    /* Status message (portfolio fetch, etc.) */
+    .status-msg {
+      padding: 10px 16px; margin: 10px 0; border-radius: 8px;
+      background: var(--blue-dim); border: 1px solid var(--blue);
+      color: var(--blue); font-size: 12px; animation: fadeIn .2s ease;
+      display: flex; align-items: center; gap: 8px;
+    }
+    .status-msg .spin {
+      display: inline-block; animation: spin 1s linear infinite; flex-shrink: 0;
+    }
+    @keyframes spin { to { transform: rotate(360deg); } }
+
+    /* Portfolio context card */
+    .portfolio-card {
+      margin: 8px 0 16px; border: 1px solid var(--green); border-radius: 10px;
+      overflow: hidden; animation: fadeIn .3s ease;
+    }
+    .portfolio-card-header {
+      background: var(--green-dim); padding: 8px 16px;
+      display: flex; align-items: center; justify-content: space-between;
+      cursor: pointer; user-select: none;
+    }
+    .portfolio-card-title {
+      font-size: 12px; font-weight: 700; color: var(--green);
+      display: flex; align-items: center; gap: 7px;
+    }
+    .portfolio-card-toggle { font-size: 11px; color: var(--text2); }
+    .portfolio-card-body {
+      padding: 14px 18px; background: var(--bg3); display: none;
+      font-size: 12px; line-height: 1.7; color: var(--text);
+    }
+    .portfolio-card-body.open { display: block; }
+    .portfolio-card-body table {
+      border-collapse: collapse; width: 100%; margin: 8px 0; font-size: 11px;
+    }
+    .portfolio-card-body th {
+      background: var(--bg4); border: 1px solid var(--border);
+      padding: 4px 8px; text-align: left; color: var(--text2); font-weight: 700;
+    }
+    .portfolio-card-body td { border: 1px solid var(--border); padding: 4px 8px; }
+    .portfolio-card-body tr:hover td { background: var(--bg4); }
+    .portfolio-card-body h1,.portfolio-card-body h2,.portfolio-card-body h3 {
+      font-size: 12px; font-weight: 700; color: var(--green); margin: 10px 0 5px;
+    }
+    .portfolio-card-body p { margin-bottom: 6px; }
+    .portfolio-card-body ul,.portfolio-card-body ol { margin: 4px 0 6px 16px; }
+    .portfolio-card-body strong { color: var(--text); }
+    .portfolio-card-body code {
+      background: var(--bg); border: 1px solid var(--border); border-radius: 3px;
+      padding: 1px 5px; color: var(--orange);
+    }
+
+    /* Phase banner */
+    .phase-banner {
+      display: flex; align-items: center; gap: 12px; margin: 20px 0 12px;
+      padding: 10px 16px; border-radius: 8px;
+      background: var(--bg3); border: 1px solid var(--border);
+      animation: fadeIn .2s ease; flex-shrink: 0;
+    }
+    .phase-banner:first-child { margin-top: 0; }
+    .phase-icon  { font-size: 16px; }
+    .phase-label { font-size: 13px; font-weight: 700; }
+    .phase-desc  { font-size: 11px; color: var(--text2); margin-left: auto; }
+    .phase-banner.opening { border-color: var(--blue); }
+    .phase-banner.opening .phase-label { color: var(--blue); }
+    .phase-banner.rebuttal { border-color: var(--orange); }
+    .phase-banner.rebuttal .phase-label { color: var(--orange); }
+    .phase-banner.verdict { border-color: var(--purple); }
+    .phase-banner.verdict .phase-label { color: var(--purple); }
+
+    @keyframes fadeIn { from{opacity:0;transform:translateY(4px)} to{opacity:1} }
+
+    /* Agent message row */
+    .msg-row {
+      display: flex; gap: 12px; padding: 12px 0;
+      border-bottom: 1px solid var(--border2); animation: fadeIn .2s ease;
+    }
+    .msg-row:last-child { border-bottom: none; }
+    .msg-avatar {
+      width: 32px; height: 32px; border-radius: 8px;
+      display: flex; align-items: center; justify-content: center;
+      font-size: 16px; flex-shrink: 0; margin-top: 1px; border: 1px solid;
+    }
+    .msg-body { flex: 1; min-width: 0; }
+    .msg-header {
+      display: flex; align-items: center; gap: 8px; margin-bottom: 6px; flex-wrap: wrap;
+    }
+    .msg-name  { font-size: 12px; font-weight: 700; }
+    .msg-title { font-size: 10px; color: var(--text2); font-weight: 600; text-transform: uppercase; letter-spacing: .4px; }
+    .msg-phase-tag {
+      font-size: 9px; font-weight: 700; padding: 2px 6px; border-radius: 4px;
+      text-transform: uppercase; letter-spacing: .4px; margin-left: auto;
+      border: 1px solid;
+    }
+    .msg-content { line-height: 1.75; color: var(--text); }
+    .msg-content p { margin-bottom: 6px; }
+    .msg-content ul,.msg-content ol { margin: 4px 0 6px 18px; }
+    .msg-content li { margin-bottom: 2px; }
+    .msg-content strong { color: var(--text); }
+    .msg-content em { color: var(--text2); }
+    .msg-content h1,.msg-content h2 { font-size: 14px; font-weight: 700; margin: 10px 0 5px; }
+    .msg-content h3 { font-size: 13px; color: var(--blue); margin: 8px 0 4px; }
+    .msg-content code {
+      background: var(--bg3); border: 1px solid var(--border); border-radius: 4px;
+      padding: 1px 5px; font-size: 12px; color: var(--orange);
+    }
+    .msg-content pre {
+      background: var(--bg3); border: 1px solid var(--border); border-radius: 6px;
+      padding: 12px; overflow-x: auto; margin: 8px 0;
+    }
+    .msg-content pre code { background:none; border:none; padding:0; color:var(--text); }
+    .msg-content table { border-collapse:collapse; width:100%; margin:8px 0; font-size:12px; }
+    .msg-content th { background:var(--bg3); border:1px solid var(--border); padding:4px 8px; text-align:left; color:var(--text2); font-weight:700; }
+    .msg-content td { border:1px solid var(--border); padding:4px 8px; }
+    .msg-content tr:hover td { background:var(--bg3); }
+    .msg-content blockquote { border-left:3px solid var(--blue); padding-left:12px; color:var(--text2); margin:6px 0; }
+
+    /* Typing indicator */
+    .typing-dots { display: flex; gap: 4px; padding: 4px 0; }
+    .typing-dots span {
+      width: 6px; height: 6px; border-radius: 50%; background: var(--text3);
+      animation: blink 1.2s infinite;
+    }
+    .typing-dots span:nth-child(2) { animation-delay: .2s; }
+    .typing-dots span:nth-child(3) { animation-delay: .4s; }
+    @keyframes blink { 0%,80%,100%{opacity:.3} 40%{opacity:1} }
+
+    /* Stance badge */
+    .stance {
+      display: inline-flex; align-items: center; padding: 2px 8px;
+      border-radius: 4px; font-size: 10px; font-weight: 800;
+      letter-spacing: .4px; text-transform: uppercase; border: 1px solid;
+    }
+    .stance-strong-buy  { background:#0d2a14; border-color:#3fb950; color:#3fb950; }
+    .stance-buy         { background:#1a3a24; border-color:#56d364; color:#56d364; }
+    .stance-hold        { background:#3a2e10; border-color:#d29922; color:#d29922; }
+    .stance-sell        { background:#2d1a0a; border-color:#f0883e; color:#f0883e; }
+    .stance-strong-sell { background:#3a1a1a; border-color:#f85149; color:#f85149; }
+
+    /* Question bubble */
+    .question-bubble {
+      display: flex; gap: 12px; padding: 12px 0;
+      border-bottom: 1px solid var(--border2); animation: fadeIn .2s ease;
+    }
+    .question-avatar {
+      width: 32px; height: 32px; border-radius: 8px;
+      background: var(--blue-dim); border: 1px solid var(--blue);
+      display: flex; align-items: center; justify-content: center;
+      font-size: 15px; flex-shrink: 0;
+    }
+    .question-body { flex: 1; }
+    .question-label { font-size: 10px; color: var(--blue); font-weight: 700; text-transform: uppercase; letter-spacing: .4px; margin-bottom: 5px; }
+    .question-text  { color: var(--text); line-height: 1.6; }
+
+    /* Done banner */
+    .done-banner {
+      margin: 16px 0 8px; padding: 10px 16px; border-radius: 8px; text-align: center;
+      background: var(--green-dim); border: 1px solid var(--green); color: var(--green);
+      font-size: 12px; font-weight: 700; animation: fadeIn .2s ease;
+    }
+
+    /* ── Sidebar ── */
+    #sidebar {
+      width: 265px; flex-shrink: 0; background: var(--bg2);
+      border-left: 1px solid var(--border); overflow-y: auto;
+      display: flex; flex-direction: column;
+    }
+    #sidebar::-webkit-scrollbar { width: 4px; }
+    #sidebar::-webkit-scrollbar-thumb { background: var(--border); border-radius: 3px; }
+
+    .sidebar-title {
+      padding: 12px 16px 10px; font-size: 10px; font-weight: 700;
+      text-transform: uppercase; letter-spacing: .5px; color: var(--text2);
+      border-bottom: 1px solid var(--border); flex-shrink: 0;
+    }
+
+    .agent-card {
+      padding: 11px 16px; border-bottom: 1px solid var(--border2); transition: background .15s;
+    }
+    .agent-card.active { background: var(--bg3); }
+    .agent-card-top {
+      display: flex; align-items: center; gap: 10px; margin-bottom: 5px;
+    }
+    .agent-card-emoji { font-size: 20px; flex-shrink: 0; }
+    .agent-card-info  { flex: 1; min-width: 0; }
+    .agent-card-name  { font-size: 12px; font-weight: 700; }
+    .agent-card-role  { font-size: 10px; color: var(--text2); }
+    .agent-card-status {
+      font-size: 10px; color: var(--text2);
+      display: flex; align-items: center; gap: 5px;
+    }
+    .status-dot { width: 6px; height: 6px; border-radius: 50%; flex-shrink: 0; }
+    .status-dot.idle     { background: var(--text3); }
+    .status-dot.thinking { background: var(--yellow); animation: pulse 1s infinite; }
+    .status-dot.speaking { background: var(--green);  animation: pulse .6s infinite; }
+    .status-dot.done     { background: var(--green); }
+    .agent-card-stance { margin-top: 6px; }
+
+    /* Portfolio status in sidebar */
+    .sidebar-portfolio {
+      padding: 11px 16px; border-bottom: 1px solid var(--border);
+      font-size: 11px; flex-shrink: 0;
+    }
+    .sidebar-portfolio-title {
+      font-size: 10px; color: var(--text2); font-weight: 700;
+      text-transform: uppercase; letter-spacing: .4px; margin-bottom: 6px;
+    }
+    .portfolio-badge {
+      display: inline-flex; align-items: center; gap: 5px;
+      padding: 3px 10px; border-radius: 20px; font-size: 11px; font-weight: 700;
+    }
+    .portfolio-badge.connected { background: var(--green-dim); border: 1px solid var(--green); color: var(--green); }
+    .portfolio-badge.pending   { background: var(--yellow-dim); border: 1px solid var(--yellow); color: var(--yellow); }
+    .portfolio-badge.none      { background: var(--bg); border: 1px solid var(--border); color: var(--text2); }
+
+    /* Vote tally */
+    .sidebar-stats {
+      padding: 11px 16px; border-top: 1px solid var(--border); margin-top: auto; flex-shrink: 0;
+    }
+    .sidebar-stats-title {
+      font-size: 10px; color: var(--text2); font-weight: 700;
+      text-transform: uppercase; letter-spacing: .4px; margin-bottom: 8px;
+    }
+
+    /* ── Input bar ── */
+    #input-bar {
+      background: var(--bg2); border-top: 1px solid var(--border);
+      padding: 12px 20px; flex-shrink: 0;
+    }
+    .input-row {
+      display: flex; gap: 10px; align-items: flex-end;
+      background: var(--bg3); border: 1px solid var(--border);
+      border-radius: 10px; padding: 10px 14px; transition: border-color .15s;
+    }
+    .input-row:focus-within { border-color: var(--purple); }
+    #debate-input {
+      flex: 1; background: none; border: none; outline: none;
+      color: var(--text); font-family: var(--font); font-size: 13px;
+      resize: none; min-height: 20px; max-height: 100px; line-height: 1.5;
+    }
+    #debate-input::placeholder { color: var(--text2); }
+    #send-btn {
+      width: 34px; height: 34px; border-radius: 7px; border: 1px solid var(--purple);
+      background: var(--purple-dim); color: var(--purple); font-size: 16px;
+      cursor: pointer; display: flex; align-items: center; justify-content: center;
+      flex-shrink: 0; transition: all .15s; font-family: var(--font);
+    }
+    #send-btn:hover:not(:disabled) { background: var(--purple); color: #fff; }
+    #send-btn:disabled { opacity: .35; cursor: default; }
+    .input-hint { font-size: 10px; color: var(--text2); margin-top: 5px; padding: 0 2px; }
+
+    /* Progress bar */
+    #progress-bar { height: 2px; background: var(--bg3); flex-shrink: 0; display: none; overflow: hidden; }
+    #progress-bar.active { display: block; }
+    #progress-fill {
+      height: 100%; width: 0%;
+      background: linear-gradient(90deg, var(--purple), var(--blue), var(--green));
+      animation: progressFlow 3s ease infinite;
+    }
+    @keyframes progressFlow { 0%{width:15%;margin-left:0} 50%{width:40%} 100%{width:15%;margin-left:85%} }
+  </style>
+</head>
+<body>
+
+<header>
+  <a class="logo" href="/"><span class="logo-icon">⚡</span>
+    <div><div class="logo-text">TradePulse</div><div class="logo-sub">Day Trading Signal Engine</div></div>
+  </a>
+  <nav>
+    <a href="http://localhost:8003/">Hot Picks</a>
+    <a href="http://localhost:8003/portfolio">Portfolio</a>
+    <a href="http://localhost:8003/agent">🤖 Agent</a>
+    <a href="http://localhost:8005/">Hive</a>
+    <a href="/" class="active">⚔️ DebateRoom</a>
+  </nav>
+</header>
+
+<div id="status-bar">
+  <div id="pill-cli" class="pill bad"><div class="dot off"></div> Claude CLI</div>
+  <div id="pill-mcp" class="pill bad"><div class="dot off"></div> Robinhood MCP</div>
+  <div class="gap"></div>
+  <button class="btn btn-ghost" onclick="refreshStatus()" title="Re-check connections">↻ Refresh</button>
+  <button class="btn btn-ghost" id="clear-btn" onclick="clearDebate()" disabled>Clear</button>
+</div>
+
+<div id="setup-notice"></div>
+<div id="progress-bar"><div id="progress-fill"></div></div>
+
+<div id="layout">
+
+  <!-- ── Debate transcript ── -->
+  <div id="debate-area">
+    <div id="empty-state">
+      <div class="empty-icon">⚔️</div>
+      <div class="empty-title">DebateRoom</div>
+      <div class="empty-sub" id="empty-sub">
+        4 specialist AI analysts debate your investment question — live, using your real Robinhood portfolio.
+        Bull vs Bear, Quant vs Macro. The Arbiter delivers the final verdict.
+      </div>
+      <div class="chips" id="chip-list">
+        <button class="chip rh" onclick="q('What should I buy next given my current portfolio?')">🏦 What to buy next?</button>
+        <button class="chip rh" onclick="q('Which of my current positions should I trim or sell?')">✂️ What to trim/sell?</button>
+        <button class="chip rh" onclick="q('Am I too concentrated in any sector or stock?')">⚖️ Portfolio balance?</button>
+        <button class="chip rh" onclick="q('Which of my positions has the best risk/reward going forward?')">🎯 Best risk/reward position?</button>
+        <button class="chip" onclick="q('Should I buy NVDA right now?')">🟢 Buy NVDA now?</button>
+        <button class="chip" onclick="q('Is TSLA a buy or a sell at current levels?')">⚡ TSLA buy or sell?</button>
+        <button class="chip" onclick="q('Which AI stocks are worth buying in 2025?')">🤖 Best AI stocks?</button>
+        <button class="chip" onclick="q('Is the market heading for a correction or a rally?')">📈 Market direction?</button>
+      </div>
+    </div>
+  </div>
+
+  <!-- ── Sidebar: agent status ── -->
+  <div id="sidebar">
+    <div class="sidebar-title">⚔️ The Panel</div>
+
+    <!-- Portfolio connection status -->
+    <div class="sidebar-portfolio">
+      <div class="sidebar-portfolio-title">Data Source</div>
+      <div id="portfolio-badge" class="portfolio-badge none">
+        <div class="dot off"></div> No Portfolio Data
+      </div>
+    </div>
+
+    <div class="agent-card" id="card-bull">
+      <div class="agent-card-top">
+        <div class="agent-card-emoji">🐂</div>
+        <div class="agent-card-info">
+          <div class="agent-card-name" style="color:#3fb950">MaxBull</div>
+          <div class="agent-card-role">Bullish Analyst</div>
+        </div>
+      </div>
+      <div class="agent-card-status">
+        <div class="status-dot idle" id="dot-bull"></div>
+        <span id="status-text-bull">Waiting</span>
+      </div>
+      <div class="agent-card-stance" id="stance-bull"></div>
+    </div>
+
+    <div class="agent-card" id="card-bear">
+      <div class="agent-card-top">
+        <div class="agent-card-emoji">🐻</div>
+        <div class="agent-card-info">
+          <div class="agent-card-name" style="color:#f85149">BearMark</div>
+          <div class="agent-card-role">Risk Analyst</div>
+        </div>
+      </div>
+      <div class="agent-card-status">
+        <div class="status-dot idle" id="dot-bear"></div>
+        <span id="status-text-bear">Waiting</span>
+      </div>
+      <div class="agent-card-stance" id="stance-bear"></div>
+    </div>
+
+    <div class="agent-card" id="card-quant">
+      <div class="agent-card-top">
+        <div class="agent-card-emoji">📊</div>
+        <div class="agent-card-info">
+          <div class="agent-card-name" style="color:#58a6ff">DataDave</div>
+          <div class="agent-card-role">Quantitative Analyst</div>
+        </div>
+      </div>
+      <div class="agent-card-status">
+        <div class="status-dot idle" id="dot-quant"></div>
+        <span id="status-text-quant">Waiting</span>
+      </div>
+      <div class="agent-card-stance" id="stance-quant"></div>
+    </div>
+
+    <div class="agent-card" id="card-macro">
+      <div class="agent-card-top">
+        <div class="agent-card-emoji">🌍</div>
+        <div class="agent-card-info">
+          <div class="agent-card-name" style="color:#d29922">MacroMike</div>
+          <div class="agent-card-role">Macro Economist</div>
+        </div>
+      </div>
+      <div class="agent-card-status">
+        <div class="status-dot idle" id="dot-macro"></div>
+        <span id="status-text-macro">Waiting</span>
+      </div>
+      <div class="agent-card-stance" id="stance-macro"></div>
+    </div>
+
+    <div class="agent-card" id="card-judge">
+      <div class="agent-card-top">
+        <div class="agent-card-emoji">⚖️</div>
+        <div class="agent-card-info">
+          <div class="agent-card-name" style="color:#bc8cff">The Arbiter</div>
+          <div class="agent-card-role">Senior Portfolio Manager</div>
+        </div>
+      </div>
+      <div class="agent-card-status">
+        <div class="status-dot idle" id="dot-judge"></div>
+        <span id="status-text-judge">Awaiting debate</span>
+      </div>
+      <div class="agent-card-stance" id="stance-judge"></div>
+    </div>
+
+    <div class="sidebar-stats" id="vote-summary" style="display:none">
+      <div class="sidebar-stats-title">Stances</div>
+      <div id="vote-display"></div>
+    </div>
+  </div>
+
+</div><!-- end #layout -->
+
+<div id="input-bar">
+  <div class="input-row">
+    <textarea id="debate-input" rows="1"
+      placeholder="Ask about your portfolio, a stock, or the market — the panel debates live…"
+      onkeydown="handleKey(event)" oninput="autoResize(this)"></textarea>
+    <button id="send-btn" onclick="send()" title="Start debate (Enter)">↑</button>
+  </div>
+  <div class="input-hint" id="input-hint">Enter to start · Shift+Enter for newline · 4 AI analysts · Robinhood MCP for live portfolio</div>
+</div>
+
+<script>
+marked.setOptions({ breaks: true, gfm: true });
+
+// ── State ─────────────────────────────────────────────────────────────────────
+let _debating = false;
+let _mcpConnected = false;
+const _bubbles = {};   // "phase:agent_id" → content DOM element
+const _accText = {};   // "phase:agent_id" → accumulated text
+
+// ── Init ──────────────────────────────────────────────────────────────────────
+refreshStatus();
+
+async function refreshStatus() {
+  try {
+    const d = await (await fetch('/api/debate/status')).json();
+    _mcpConnected = !!d.robinhood_mcp;
+    renderStatus(d.claude_available, d.robinhood_mcp);
+  } catch(_) {
+    renderStatus(false, false);
+  }
+}
+
+function renderStatus(cliOk, mcpOk) {
+  setPill('pill-cli', cliOk, 'Claude CLI');
+  setPill('pill-mcp', mcpOk, 'Robinhood MCP');
+
+  const n = document.getElementById('setup-notice');
+
+  if (!cliOk) {
+    n.className = 'warn'; n.style.display = '';
+    n.innerHTML =
+      '⚠ <strong>Claude Code CLI not found.</strong> ' +
+      'Install it: <code>npm install -g @anthropic-ai/claude-code</code> ' +
+      'then restart the server.';
+  } else if (!mcpOk) {
+    n.className = 'info'; n.style.display = '';
+    n.innerHTML =
+      'ℹ <strong>Connect your Robinhood account for personalised analysis.</strong> ' +
+      'Run once in your terminal, then click ↻ Refresh:<br>' +
+      '<code>claude mcp add robinhood-trading --transport http https://agent.robinhood.com/mcp/trading</code>';
+  } else {
+    n.style.display = 'none';
+  }
+
+  // Update sidebar portfolio badge
+  const badge = document.getElementById('portfolio-badge');
+  if (mcpOk) {
+    badge.className = 'portfolio-badge connected';
+    badge.innerHTML = '<div class="dot on"></div> Robinhood Live';
+  } else {
+    badge.className = 'portfolio-badge none';
+    badge.innerHTML = '<div class="dot off"></div> No Portfolio Data';
+  }
+}
+
+function setPill(id, ok, label) {
+  const el = document.getElementById(id);
+  el.className = `pill ${ok ? 'ok' : 'bad'}`;
+  el.innerHTML = `<div class="dot ${ok ? 'on' : 'off'}"></div> ${label}`;
+}
+
+// ── Helpers ───────────────────────────────────────────────────────────────────
+function q(text) { document.getElementById('debate-input').value = text; send(); }
+function handleKey(e) { if (e.key === 'Enter' && !e.shiftKey) { e.preventDefault(); send(); } }
+function autoResize(ta) { ta.style.height = 'auto'; ta.style.height = Math.min(ta.scrollHeight, 100) + 'px'; }
+function esc(s) { return String(s).replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;'); }
+function scrollBot() { const a = document.getElementById('debate-area'); a.scrollTop = a.scrollHeight; }
+
+function stanceKey(stance) { return stance.toLowerCase().replace(/\s+/g,'-'); }
+function stanceHtml(stance) {
+  if (!stance) return '';
+  return `<span class="stance stance-${stanceKey(stance)}">${esc(stance)}</span>`;
+}
+function extractStance(text) {
+  const m = text.match(/(?:REVISED\s+)?STANCE:\s*(STRONG\s+BUY|BUY|HOLD|SELL|STRONG\s+SELL)/i);
+  return m ? m[1].trim().toUpperCase() : null;
+}
+
+// ── Agent sidebar ─────────────────────────────────────────────────────────────
+function setAgentStatus(id, status, stanceText) {
+  const dot  = document.getElementById(`dot-${id}`);
+  const text = document.getElementById(`status-text-${id}`);
+  const card = document.getElementById(`card-${id}`);
+  if (!dot || !text) return;
+  dot.className = `status-dot ${status}`;
+  card.classList.toggle('active', status === 'thinking' || status === 'speaking');
+  const labels = { idle:'Waiting', thinking:'Analyzing…', speaking:'Responding…', done:'Done ✓' };
+  text.textContent = labels[status] || status;
+  if (stanceText) {
+    const el = document.getElementById(`stance-${id}`);
+    if (el) el.innerHTML = stanceHtml(stanceText);
+  }
+}
+
+function resetAgents() {
+  ['bull','bear','quant','macro','judge'].forEach(id => {
+    setAgentStatus(id, 'idle', null);
+    const el = document.getElementById(`stance-${id}`);
+    if (el) el.innerHTML = '';
+  });
+  document.getElementById('vote-summary').style.display = 'none';
+  document.getElementById('vote-display').innerHTML = '';
+  const badge = document.getElementById('portfolio-badge');
+  if (_mcpConnected) {
+    badge.className = 'portfolio-badge connected';
+    badge.innerHTML = '<div class="dot on"></div> Robinhood Live';
+  }
+}
+
+// ── Transcript builders ───────────────────────────────────────────────────────
+function addQuestionBubble(question) {
+  const area = document.getElementById('debate-area');
+  const div  = document.createElement('div');
+  div.className = 'question-bubble';
+  div.innerHTML = `
+    <div class="question-avatar">🙋</div>
+    <div class="question-body">
+      <div class="question-label">Your Question</div>
+      <div class="question-text">${esc(question)}</div>
+    </div>`;
+  area.appendChild(div);
+  scrollBot();
+}
+
+function addStatusMsg(msg, id) {
+  const area = document.getElementById('debate-area');
+  const div  = document.createElement('div');
+  div.className = 'status-msg';
+  if (id) div.id = id;
+  div.innerHTML = `<span class="spin">⟳</span> ${esc(msg)}`;
+  area.appendChild(div);
+  scrollBot();
+  return div;
+}
+
+function addPortfolioCard(summary) {
+  // Remove the fetching spinner
+  const spinner = document.getElementById('portfolio-fetch-msg');
+  if (spinner) spinner.remove();
+
+  const area = document.getElementById('debate-area');
+  const div  = document.createElement('div');
+  div.className = 'portfolio-card';
+  div.innerHTML = `
+    <div class="portfolio-card-header" onclick="togglePortfolioCard(this)">
+      <div class="portfolio-card-title">
+        <span>🏦</span> Your Live Robinhood Portfolio
+        <span style="font-size:10px;font-weight:400;color:var(--text2)">(used by all analysts)</span>
+      </div>
+      <span class="portfolio-card-toggle">▼ Show</span>
+    </div>
+    <div class="portfolio-card-body">${marked.parse(summary)}</div>`;
+  area.appendChild(div);
+
+  // Update sidebar badge
+  const badge = document.getElementById('portfolio-badge');
+  badge.className = 'portfolio-badge connected';
+  badge.innerHTML = '<div class="dot on"></div> Portfolio Loaded ✓';
+
+  scrollBot();
+}
+
+function togglePortfolioCard(header) {
+  const body   = header.nextElementSibling;
+  const toggle = header.querySelector('.portfolio-card-toggle');
+  const open   = body.classList.toggle('open');
+  toggle.textContent = open ? '▲ Hide' : '▼ Show';
+}
+
+function addPhaseBanner(event) {
+  const area = document.getElementById('debate-area');
+  const div  = document.createElement('div');
+  div.className = `phase-banner ${event.phase}`;
+  const icons = { opening:'💬', rebuttal:'⚡', verdict:'⚖️' };
+  div.innerHTML = `
+    <span class="phase-icon">${icons[event.phase] || '•'}</span>
+    <span class="phase-label">${esc(event.label)}</span>
+    <span class="phase-desc">${esc(event.description || '')}</span>`;
+  area.appendChild(div);
+  scrollBot();
+}
+
+function createAgentBubble(event) {
+  const area = document.getElementById('debate-area');
+  const row  = document.createElement('div');
+  row.className = 'msg-row';
+  row.id = `row-${event.phase}-${event.agent_id}`;
+
+  const avatarStyle = `background:${event.bg||'#161b22'};border-color:${event.color};`;
+  const phaseLabels = { opening:'Round 1', rebuttal:'Round 2', verdict:'Verdict' };
+
+  const phaseTag = event.phase !== 'verdict'
+    ? `<span class="msg-phase-tag" style="background:${event.bg};border-color:${event.color};color:${event.color}">${phaseLabels[event.phase]||event.phase}</span>`
+    : '';
+
+  const bodyClass = event.phase === 'verdict' ? 'msg-body verdict-card' : 'msg-body';
+
+  row.innerHTML = `
+    <div class="msg-avatar" style="${avatarStyle}">${event.emoji}</div>
+    <div class="${bodyClass}">
+      <div class="msg-header">
+        <span class="msg-name" style="color:${event.color}">${esc(event.agent_name)}</span>
+        <span class="msg-title">${esc(event.title)}</span>
+        <span id="stance-inline-${event.phase}-${event.agent_id}"></span>
+        ${phaseTag}
+      </div>
+      <div class="msg-content" id="content-${event.phase}-${event.agent_id}">
+        <div class="typing-dots"><span></span><span></span><span></span></div>
+      </div>
+    </div>`;
+
+  // Verdict card styling
+  if (event.phase === 'verdict') {
+    const body = row.querySelector('.msg-body');
+    body.style.cssText = `
+      flex:1; min-width:0; background:${event.bg}; border:1px solid ${event.color};
+      border-radius:10px; padding:16px 20px; margin-top:4px;`;
+  }
+
+  area.appendChild(row);
+  scrollBot();
+  return document.getElementById(`content-${event.phase}-${event.agent_id}`);
+}
+
+// ── Event handler ─────────────────────────────────────────────────────────────
+function handleEvent(event) {
+  const { type, phase, agent_id } = event;
+
+  if (type === 'status') {
+    addStatusMsg(event.message, 'portfolio-fetch-msg');
+    return;
+  }
+
+  if (type === 'portfolio_ready') {
+    addPortfolioCard(event.summary);
+    return;
+  }
+
+  if (type === 'phase_start') {
+    // Remove any lingering status messages
+    const m = document.getElementById('portfolio-fetch-msg');
+    if (m) m.remove();
+    addPhaseBanner(event);
+    if (phase === 'opening' || phase === 'rebuttal') {
+      ['bull','bear','quant','macro'].forEach(id => setAgentStatus(id, 'thinking', null));
+    } else if (phase === 'verdict') {
+      setAgentStatus('judge', 'thinking', null);
+    }
+    return;
+  }
+
+  if (type === 'agent_start') {
+    const bubble = createAgentBubble(event);
+    _bubbles[`${phase}:${agent_id}`] = bubble;
+    _accText[`${phase}:${agent_id}`]  = '';
+    setAgentStatus(agent_id, 'thinking', null);
+    return;
+  }
+
+  if (type === 'chunk') {
+    const key    = `${phase}:${agent_id}`;
+    const bubble = _bubbles[key];
+    if (!bubble) return;
+    _accText[key] = (_accText[key] || '') + event.chunk;
+    bubble.innerHTML = marked.parse(_accText[key]);
+    setAgentStatus(agent_id, 'speaking', null);
+    scrollBot();
+    return;
+  }
+
+  if (type === 'agent_done') {
+    const key    = `${phase}:${agent_id}`;
+    const bubble = _bubbles[key];
+    const full   = event.full_text || '';
+    if (bubble) bubble.innerHTML = marked.parse(full);
+    const stance = extractStance(full);
+    setAgentStatus(agent_id, 'done', stance);
+    if (stance) {
+      const el = document.getElementById(`stance-inline-${phase}-${agent_id}`);
+      if (el) el.innerHTML = stanceHtml(stance);
+    }
+    updateVoteTally();
+    scrollBot();
+    return;
+  }
+
+  if (type === 'done') { finishDebate(); return; }
+
+  if (type === 'error') {
+    const area = document.getElementById('debate-area');
+    const div  = document.createElement('div');
+    div.style.cssText = 'padding:12px;color:var(--red);font-size:12px;';
+    div.textContent = '⚠ ' + (event.message || 'Unknown error');
+    area.appendChild(div);
+    finishDebate();
+  }
+}
+
+function updateVoteTally() {
+  const stances = {};
+  ['bull','bear','quant','macro'].forEach(id => {
+    const el = document.getElementById(`stance-${id}`);
+    if (el && el.textContent.trim()) stances[id] = el.textContent.trim();
+  });
+  if (Object.keys(stances).length === 0) return;
+  const names = { bull:'🐂 MaxBull', bear:'🐻 BearMark', quant:'📊 DataDave', macro:'🌍 MacroMike' };
+  document.getElementById('vote-summary').style.display = '';
+  document.getElementById('vote-display').innerHTML = Object.entries(stances).map(([id, stance]) =>
+    `<div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:5px">
+       <span style="font-size:11px;color:var(--text2)">${names[id]||id}</span>
+       ${stanceHtml(stance)}
+     </div>`
+  ).join('');
+}
+
+function finishDebate() {
+  _debating = false;
+  document.getElementById('send-btn').disabled = false;
+  document.getElementById('debate-input').disabled = false;
+  document.getElementById('clear-btn').disabled = false;
+  document.getElementById('progress-bar').classList.remove('active');
+  const area = document.getElementById('debate-area');
+  const done = document.createElement('div');
+  done.className = 'done-banner';
+  done.textContent = '✓ Debate complete — panel has reached its verdict';
+  area.appendChild(done);
+  scrollBot();
+}
+
+// ── Main send ─────────────────────────────────────────────────────────────────
+async function send() {
+  const inp = document.getElementById('debate-input');
+  const txt = inp.value.trim();
+  if (!txt || _debating) return;
+
+  // Clear previous debate
+  const area = document.getElementById('debate-area');
+  area.innerHTML = '';
+  for (const k in _bubbles) delete _bubbles[k];
+  for (const k in _accText) delete _accText[k];
+  resetAgents();
+  document.getElementById('empty-state')?.remove();
+
+  addQuestionBubble(txt);
+  inp.value = ''; inp.style.height = '';
+
+  _debating = true;
+  document.getElementById('send-btn').disabled = true;
+  document.getElementById('debate-input').disabled = true;
+  document.getElementById('clear-btn').disabled = true;
+  document.getElementById('progress-bar').classList.add('active');
+
+  let buf = '';
+  try {
+    const res = await fetch('/api/debate/chat', {
+      method:  'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body:    JSON.stringify({ question: txt }),
+    });
+    if (!res.ok) {
+      const e = await res.json().catch(() => ({}));
+      throw new Error(e.error || res.statusText);
+    }
+    const reader = res.body.getReader();
+    const dec    = new TextDecoder();
+    while (true) {
+      const { done, value } = await reader.read();
+      if (done) break;
+      buf += dec.decode(value, { stream: true });
+      const lines = buf.split('\n');
+      buf = lines.pop();
+      for (const line of lines) {
+        if (!line.startsWith('data: ')) continue;
+        const raw = line.slice(6).trim();
+        if (raw === '[DONE]') { reader.cancel(); break; }
+        try { handleEvent(JSON.parse(raw)); } catch(_) {}
+      }
+    }
+  } catch (err) {
+    const div = document.createElement('div');
+    div.style.cssText = 'padding:16px;color:var(--red);';
+    div.textContent = '⚠ ' + err.message;
+    document.getElementById('debate-area').appendChild(div);
+    finishDebate();
+  }
+}
+
+function clearDebate() {
+  if (_debating) return;
+  document.getElementById('debate-area').innerHTML = `
+    <div id="empty-state">
+      <div class="empty-icon">⚔️</div>
+      <div class="empty-title">DebateRoom</div>
+      <div class="empty-sub">
+        4 specialist AI analysts debate your investment question using your live Robinhood portfolio.
+      </div>
+      <div class="chips">
+        <button class="chip rh" onclick="q('What should I buy next given my current portfolio?')">🏦 What to buy next?</button>
+        <button class="chip rh" onclick="q('Which of my current positions should I trim or sell?')">✂️ What to trim/sell?</button>
+        <button class="chip rh" onclick="q('Am I too concentrated in any sector or stock?')">⚖️ Portfolio balance?</button>
+        <button class="chip rh" onclick="q('Which of my positions has the best risk/reward going forward?')">🎯 Best risk/reward position?</button>
+        <button class="chip" onclick="q('Should I buy NVDA right now?')">🟢 Buy NVDA now?</button>
+        <button class="chip" onclick="q('Is TSLA a buy or a sell at current levels?')">⚡ TSLA buy or sell?</button>
+        <button class="chip" onclick="q('Which AI stocks are worth buying in 2025?')">🤖 Best AI stocks?</button>
+        <button class="chip" onclick="q('Is the market heading for a correction or a rally?')">📈 Market direction?</button>
+      </div>
+    </div>`;
+  resetAgents();
+  document.getElementById('clear-btn').disabled = true;
+}
+</script>
+</body>
+</html>
