@@ -40,6 +40,8 @@ setup/usage — this file is the "how it actually works and how to fix it" doc.
 | `train/registry.py` | `save_version()`, `load_model()`, `list_versions()`, `set_current()` (promote/rollback) — versioned dirs under `models/registry/` |
 | `agent_engine.py` | Trimmed copy of `hotpicks/agent_engine.py` — finds the `claude` CLI cross-platform, runs it via subprocess with `--output-format stream-json`, strips `ANTHROPIC_API_KEY` so it rides the Pro/Max subscription. Only `oneshot_claude()` — no sessions, no Robinhood MCP |
 | `live_context.py` | `get_live_snapshot(ticker)` — one `agent_engine.oneshot_claude()` call asking for a JSON price/sentiment/candle read. Best-effort, never raises |
+| `robinhood_positions.py` | `fetch_distinct_tickers()` — one `oneshot_claude()` call asking Claude to use the `robinhood-trading` MCP and return positions across all accounts as JSON (markdown-table fallback parser if it doesn't). Filters out anything under `MIN_HOLDING_QUANTITY` (1.0 share) total — dividend-reinvestment dust, not real holdings (dropped a real account from 36 tickers to 9). Raises on failure — `main.py` turns that into a 503/500 |
+| `storage.py` | `favorites.json` (add/remove/list) and `predictions_cache.json` (keyed by ticker, shared by both dashboard sections) — see §6 for why the cache is the mechanism that makes "predict once, use everywhere" work |
 | `narrator/build_dataset.py` | Samples historical rows, scores them with the current classifier, synthesizes a plausible (not real) live-context sentence, asks Claude to polish `pipeline._mechanical_narrative()`'s draft into fluent prose. Writes `narrator/dataset/v{N}.jsonl` incrementally (one line per example, flushed immediately) |
 | `narrator/train_narrator.py` | LoRA fine-tune (`peft`) → merge → GGUF convert (shallow `llama.cpp` clone) → register with Ollama over HTTP (`POST /api/create`, not the CLI) → append to `narrator/registry.json` |
 | `pipeline.py` | LangGraph `StateGraph` — see §2.1 |
@@ -180,6 +182,33 @@ as escape sequences by the parser). **Fix in place**:
 rather than the raw `Path` string. If you construct a Modelfile anywhere else,
 do the same.
 
+### 3.7 `oneshot_claude` garbled/dropped text on multi-message responses (tool calls)
+
+`agent_engine.oneshot_claude()` accumulates streamed `"assistant"` events'
+text blocks. The original version tracked a single global `last_len` and did
+`if len(text) > last_len: full_text += text[last_len:]` — correct **only**
+if the whole response is one growing text block in one message. A prompt that
+makes Claude call a tool (e.g. `robinhood_positions.py`'s MCP fetch) instead
+produces a preamble text block in one message ("Now fetching positions for
+all accounts in parallel."), then — after the tool result comes back — a
+**separate** final-answer message with its own, unrelated text length. The
+second message's length compared against the first message's accumulated
+`last_len` produced silently dropped or interleaved-garbage text (surfaced as
+`ValueError: Could not parse positions from Claude response: ...` with a
+visibly mangled JSON fragment — caught while first testing
+`GET /api/robinhood/positions`).
+
+**Fix in place**: text is now accumulated **per message id**
+(`evt["message"]["id"]`), each with its own delta counter, and the final
+result joins each message's buffer in the order the ids first appeared
+(`text_by_msg` / `len_by_msg` / `msg_order` in `agent_engine.py`). This is a
+correctness fix for *any* prompt that causes a tool call, not just the
+Robinhood one — `live_context.py`'s prompts happened not to trigger it only
+because they don't require a tool call, so they never produced a second
+message. If you add a new Claude-CLI-driven feature that uses an MCP tool,
+you're exercising this same code path — don't reintroduce a single global
+`last_len`.
+
 ## 4. Triage guide for live issues
 
 ### "Ollama is down / flaky"
@@ -239,6 +268,39 @@ subprocess call — 20-45s is normal. `agent_engine.oneshot_claude()`'s
 `timeout` parameter (default 60s in `live_context.py`) kills a hung subprocess
 rather than hanging forever; a timeout there degrades gracefully
 (`live_context.available: false`), it doesn't fail the whole request.
+
+### "Dashboard feels slow / looks broken on load"
+
+`GET /api/robinhood/positions` alone took ~60s in testing against a real
+account (one Claude CLI call that has to enumerate every account) —
+`index.html`'s `loadAll()` runs `loadFavoritesSection()` and
+`loadRobinhoodSection()` as two INDEPENDENT async chains (not one combined
+`Promise.all` before any rendering) specifically so the slow Robinhood fetch
+never blocks Favorites from painting — Favorites is usually near-instant
+(`GET /api/favorites` is a local file read, and every ticker's prediction
+comes from `storage.py`'s on-disk cache from ANY previous load, not just this
+session, so a reload repaints last time's results immediately). The "Loading
+holdings from Robinhood…" note next to that section's header covers the ~60s
+window before Robinhood's own data arrives; if the note isn't showing and the
+section is just silently empty, that's the regression to look for (it
+happened once already before the note existed — a page load mid-fetch looked
+identical to Robinhood being disconnected). Within each section,
+`ensurePredicted()` fires for every distinct ticker **fully in parallel** —
+each is its own Claude CLI subprocess, so a large holdings list means a real
+burst of concurrent subprocesses (deliberately not throttled — see git
+history if you need to reintroduce a concurrency cap, e.g. if this starts
+overwhelming Ollama/the CLI on a given machine). Once cached (`storage.py`), reloading the
+page is near-instant for every ticker until someone clicks a tile's ↻.
+
+### "A ticker's tile shows stale data after I refreshed the other one"
+
+Shouldn't happen — both dashboard sections render from the SAME
+`predictionsByTicker[ticker]` client-side object, and the backend cache
+(`storage.py`, keyed by ticker) is the shared source both sections' initial
+fetch reads from. If you do see this, check whether the two tiles are
+actually the same ticker string (case/whitespace — both frontend and backend
+uppercase+trim, but a bug in a new code path might not) before assuming the
+cache-sharing mechanism itself is broken.
 
 ## 5. How to extend
 

@@ -53,7 +53,9 @@ async def get_live_snapshot(ticker: str) -> dict:
         return {"ticker": ticker, "available": False, **_FALLBACK}
 
     try:
-        raw = await agent_engine.oneshot_claude(_PROMPT_TEMPLATE.format(ticker=ticker), timeout=45.0)
+        raw = await agent_engine.oneshot_claude(
+            _PROMPT_TEMPLATE.format(ticker=ticker), timeout=45.0, app="signalforge-live-context"
+        )
         parsed = _parse_json_object(raw)
         return {
             "ticker": ticker,

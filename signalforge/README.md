@@ -23,6 +23,10 @@ small locally fine-tuned LLM narrator layered on top for the write-up.
   served through Ollama**, with a plain templated fallback if Ollama or the narrator
   is unavailable. It **only restyles** the numbers it's handed — it never predicts
   the signal or confidence itself. That job belongs to the classifier, full stop.
+- **The dashboard is tile-based**: a Favorites section (tickers you've searched, stored
+  permanently server-side) and a Robinhood Holdings section (fetched live from your
+  connected accounts via the Robinhood MCP). A ticker held in both is predicted
+  **once** and shared between both tiles — see §6.
 
 ## 2. Architecture
 
@@ -40,6 +44,12 @@ train/
 models/registry/        model.txt, feature_list.json, metrics.json, training_config.json per version
 agent_engine.py         Claude Code CLI bridge (subprocess, --print --output-format stream-json)
 live_context.py         Asks Claude for a live price/sentiment/candle read on a ticker
+robinhood_positions.py  Fetches distinct tickers across ALL Robinhood accounts via the
+                        robinhood-trading MCP (through the Claude Code CLI, same technique
+                        as hotpicks/agent_engine.py's fetch_positions_via_mcp)
+storage.py              Favorites list + shared per-ticker prediction cache — both plain
+                        JSON files on disk (favorites.json, predictions_cache.json,
+                        both gitignored — personal runtime state, not source)
 narrator/
   build_dataset.py      Bootstraps (prompt -> narration) training pairs via the Claude CLI
   train_narrator.py     LoRA fine-tune (Qwen2.5-0.5B-Instruct) -> merge -> GGUF -> register with Ollama
@@ -146,24 +156,65 @@ text is the fine-tuning target.
 `signalforge-narrator:v2` (294 examples, 3 epochs, the real one). `pipeline.py`
 uses `v2` automatically.
 
-## 6. Running the API
+## 6. Running the API + dashboard
 
 ```bash
 uvicorn main:app --reload --port 8011
 ```
 
-- UI: http://localhost:8011
-- `GET /api/predict?ticker=NVDA` — full prediction (signal, confidence, backtested
-  accuracy, narrative, live Claude context, raw features)
-- `GET /api/models` — every trained classifier version + its real backtested metrics
-- `POST /api/models/{version}/promote` — roll back/forward without retraining
+The UI (http://localhost:8011) is a tile dashboard with two sections:
+
+- **⭐ Favorites** — every ticker you've ever searched, added automatically
+  (`POST /api/favorites/{ticker}`) and stored permanently in `favorites.json`.
+  Each tile has an **✕** to remove it and a **↻** to force a fresh prediction.
+- **🏦 Robinhood Holdings** — fetched live on page load from every connected
+  Robinhood account via the MCP (`GET /api/robinhood/positions`), read-only
+  (no ✕ — holdings aren't something you "remove" from the dashboard, they
+  reflect your actual account).
+
+**One prediction per ticker, shared across both sections.** If a ticker is both
+a favorite and an actual holding, it's predicted once and both tiles read the
+same cached result (`storage.py`'s `predictions_cache.json`, keyed by ticker).
+Clicking **↻** on either tile force-refreshes that ticker's cache entry —
+because both tiles read from the same underlying entry, the other section's
+tile for that ticker reflects the refresh too, without needing its own click.
+Tiles show a compact signal/confidence/key-feature summary and a "last
+updated" timestamp; click a tile to open a modal with the full analyst
+narrative, a **plain-English explanation** (rule-based, always available even
+if the narrator/Ollama is down — see `pipeline._layman_explanation`), live
+context, and the raw feature values.
+
+Every distinct ticker is predicted **fully in parallel** on load (each is its
+own Claude CLI subprocess, ~20-45s) — after the first load, every ticker is
+cached (`storage.py`) so reloading the page is near-instant until a ↻ is
+clicked. Robinhood holdings are also filtered to real positions: anything
+under `robinhood_positions.MIN_HOLDING_QUANTITY` (1 full share) total across
+all accounts is dropped — dividend-reinvestment/round-up fractional dust
+(e.g. 0.0116 shares of MSFT) isn't a holding anyone is tracking, and a real
+36-ticker account was mostly this kind of noise before the filter.
+
+**API reference:**
+
+| Endpoint | Behavior |
+|---|---|
+| `GET /api/predict?ticker=X` | Full prediction (signal, confidence, backtested accuracy, narrative, layman explanation, live Claude context, features). Served from `predictions_cache.json` if present — near-instant, no CLI call, `from_cache: true` |
+| `GET /api/predict?ticker=X&force_refresh=true` | Bypasses the cache, re-runs the full pipeline, **overwrites** the shared cache entry — this is what the tile's ↻ button calls |
+| `GET /api/favorites` | List of favorited tickers |
+| `POST /api/favorites/{ticker}` | Add to favorites (idempotent) |
+| `DELETE /api/favorites/{ticker}` | Remove from favorites |
+| `GET /api/robinhood/status` | `{claude_available, robinhood_mcp}` — whether the CLI/MCP are ready |
+| `GET /api/robinhood/positions` | Distinct tickers held across all accounts, with per-account quantity/avg-cost |
+| `GET /api/models` | Every trained classifier version + its real backtested metrics |
+| `POST /api/models/{version}/promote` | Roll back/forward without retraining |
 
 Requires the [Claude Code CLI](https://github.com/anthropics/claude-code) installed
 and authenticated (`npm install -g @anthropic-ai/claude-code`, then run `claude`
-once) — `/api/predict` calls it for the live-context step. If it's unavailable,
-prediction still works; `live_context.available` is just `false` and the narrative
-says so. Same story for Ollama/the narrator — see `AGENTS.md` for known flakiness
-on this machine and how to check/recover without retraining.
+once) for both the live-context step and the Robinhood MCP fetch. For the latter,
+also register the MCP once: `claude mcp add robinhood-trading --transport http
+https://agent.robinhood.com/mcp/trading`. If the CLI or Ollama/the narrator is
+unavailable, prediction still works with graceful fallbacks (`live_context.available:
+false`, mechanical narrative) — see `AGENTS.md` for known flakiness on this machine
+and how to check/recover without retraining.
 
 ## 7. Known limitations
 

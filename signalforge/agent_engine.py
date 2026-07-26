@@ -91,9 +91,25 @@ def claude_available() -> bool:
     return _find_claude() is not None
 
 
+def check_robinhood_mcp() -> bool:
+    """Return True if the Robinhood MCP is registered in Claude Code.
+    Used by robinhood_positions.py before attempting a positions fetch."""
+    exe = _find_claude()
+    if not exe:
+        return False
+    try:
+        r = subprocess.run(
+            [exe, "mcp", "list"], capture_output=True, text=True,
+            shell=(sys.platform == "win32"), timeout=8,
+        )
+        return "robinhood" in r.stdout.lower()
+    except Exception:
+        return False
+
+
 # ── One-shot helper (no session, returns full text) ───────────────────────────
 
-async def oneshot_claude(prompt: str, timeout: float = 60.0) -> str:
+async def oneshot_claude(prompt: str, timeout: float = 60.0, app: str = "signalforge") -> str:
     """
     Run a single prompt through the claude CLI without any session tracking.
     Returns the full accumulated text response.
@@ -141,8 +157,18 @@ async def oneshot_claude(prompt: str, timeout: float = 60.0) -> str:
 
     threading.Thread(target=_worker, daemon=True).start()
 
-    full_text = ""
-    last_len = 0
+    # Tracked PER message id, not one global counter: a prompt that makes Claude
+    # call a tool (e.g. the Robinhood MCP) produces a preamble text block in one
+    # "assistant" message, then — after the tool result — a SEPARATE final-answer
+    # message with its own text block. A single shared last_len compared the
+    # second message's (shorter, unrelated) length against the first message's
+    # accumulated length and silently dropped or garbled the final text. Each
+    # message id gets its own delta counter and text buffer; buffers are joined
+    # in the order their message ids first appeared.
+    text_by_msg: dict[str, str] = {}
+    len_by_msg: dict[str, int] = {}
+    msg_order: list[str] = []
+    plain_text = ""   # non-JSON lines (rare) — kept separate, appended at the end
     try:
         while True:
             tag, val = await asyncio.wait_for(queue.get(), timeout=timeout)
@@ -156,18 +182,24 @@ async def oneshot_claude(prompt: str, timeout: float = 60.0) -> str:
             try:
                 evt = json.loads(line)
             except json.JSONDecodeError:
-                full_text += line + "\n"
+                plain_text += line + "\n"
                 continue
             etype = evt.get("type", "")
             if etype == "result":
-                _record_usage(evt, "signalforge-live-context")
+                _record_usage(evt, app)
             if etype == "assistant":
-                for block in evt.get("message", {}).get("content", []):
+                message = evt.get("message", {})
+                msg_id = message.get("id", "") or "default"
+                for block in message.get("content", []):
                     if isinstance(block, dict) and block.get("type") == "text":
                         text = block.get("text", "")
-                        if len(text) > last_len:
-                            full_text += text[last_len:]
-                            last_len = len(text)
+                        prev_len = len_by_msg.get(msg_id, 0)
+                        if len(text) > prev_len:
+                            if msg_id not in msg_order:
+                                msg_order.append(msg_id)
+                                text_by_msg[msg_id] = ""
+                            text_by_msg[msg_id] += text[prev_len:]
+                            len_by_msg[msg_id] = len(text)
     except asyncio.TimeoutError:
         log.warning("oneshot_claude timed out after %.0fs — killing subprocess", timeout)
         if proc_ref:
@@ -177,4 +209,5 @@ async def oneshot_claude(prompt: str, timeout: float = 60.0) -> str:
                 pass
         raise RuntimeError(f"Claude CLI did not respond within {timeout:.0f}s")
 
+    full_text = "".join(text_by_msg[m] for m in msg_order) + plain_text
     return full_text

@@ -19,8 +19,11 @@ load_dotenv(Path(__file__).parent.parent / "backend" / ".env")
 
 sys.path.insert(0, str(Path(__file__).parent / "train"))
 
+import agent_engine
 import pipeline
 import registry  # type: ignore
+import robinhood_positions
+import storage
 
 logging.basicConfig(level=logging.INFO, format="%(asctime)s [%(levelname)s] %(name)s: %(message)s")
 log = logging.getLogger(__name__)
@@ -45,11 +48,32 @@ def health():
     return {"status": "ok", "current_model_version": registry.get_current_version()}
 
 
+def _valid_ticker(ticker: str) -> bool:
+    return bool(ticker) and len(ticker) <= 10 and ticker.replace("-", "").isalnum()
+
+
 @app.get("/api/predict")
-async def predict(ticker: str = Query(..., description="Stock ticker symbol, e.g. NVDA")):
+async def predict(
+    ticker: str = Query(..., description="Stock ticker symbol, e.g. NVDA"),
+    force_refresh: bool = Query(False, description="Bypass the shared cache and re-run the full pipeline"),
+):
+    """
+    Cached by ticker (storage.py) so the Favorites section and the Robinhood
+    section share exactly one prediction per ticker — whichever renders first
+    triggers the (slow, Claude-CLI-bound) pipeline; the other reads the same
+    cached entry. Pass force_refresh=true (the tile's refresh icon) to bypass
+    the cache and recompute; the result then updates the shared cache entry,
+    so BOTH sections reflect the refresh, not just whichever tile triggered it.
+    """
     ticker = ticker.upper().strip()
-    if not ticker or len(ticker) > 10 or not ticker.replace("-", "").isalnum():
+    if not _valid_ticker(ticker):
         return JSONResponse(status_code=400, content={"error": f"Invalid ticker symbol: '{ticker}'"})
+
+    if not force_refresh:
+        cached = storage.get_cached_prediction(ticker)
+        if cached is not None:
+            return {**cached, "from_cache": True}
+
     if registry.get_current_version() is None:
         return JSONResponse(
             status_code=503,
@@ -57,9 +81,60 @@ async def predict(ticker: str = Query(..., description="Stock ticker symbol, e.g
         )
     try:
         result = await pipeline.predict(ticker)
-        return result
+        stamped = storage.set_cached_prediction(ticker, result)
+        return {**stamped, "from_cache": False}
     except Exception as exc:
         log.error("Prediction failed for %s: %s", ticker, exc, exc_info=True)
+        return JSONResponse(status_code=500, content={"error": str(exc)})
+
+
+# ── Favorites ──────────────────────────────────────────────────────────────
+# Deliberately decoupled from /api/predict — the frontend's search action calls
+# POST /api/favorites/{ticker} itself rather than /api/predict auto-adding, so
+# that tickers viewed only via the Robinhood section (not searched) don't get
+# silently added to Favorites too.
+
+@app.get("/api/favorites")
+def get_favorites():
+    return {"favorites": storage.get_favorites()}
+
+
+@app.post("/api/favorites/{ticker}")
+def add_favorite(ticker: str):
+    ticker = ticker.upper().strip()
+    if not _valid_ticker(ticker):
+        return JSONResponse(status_code=400, content={"error": f"Invalid ticker symbol: '{ticker}'"})
+    return {"favorites": storage.add_favorite(ticker)}
+
+
+@app.delete("/api/favorites/{ticker}")
+def remove_favorite(ticker: str):
+    return {"favorites": storage.remove_favorite(ticker.upper().strip())}
+
+
+# ── Robinhood holdings ───────────────────────────────────────────────────────
+
+@app.get("/api/robinhood/status")
+def robinhood_status():
+    cli_ok = agent_engine.claude_available()
+    mcp_ok = agent_engine.check_robinhood_mcp() if cli_ok else False
+    return {"claude_available": cli_ok, "robinhood_mcp": mcp_ok}
+
+
+@app.get("/api/robinhood/positions")
+async def robinhood_positions_endpoint():
+    if not agent_engine.claude_available():
+        return JSONResponse(status_code=503, content={"error": "Claude CLI not found."})
+    if not agent_engine.check_robinhood_mcp():
+        return JSONResponse(
+            status_code=503,
+            content={"error": "Robinhood MCP not configured. Run: claude mcp add robinhood-trading --transport http https://agent.robinhood.com/mcp/trading"},
+        )
+    try:
+        positions = await robinhood_positions.fetch_distinct_tickers()
+        return {"positions": positions}
+    except Exception as exc:
+        log.error("Robinhood positions fetch failed: %s", exc, exc_info=True)
         return JSONResponse(status_code=500, content={"error": str(exc)})
 
 

@@ -1,21 +1,21 @@
 {
   "plan": "Pro",
   "h5_start": "2026-07-26T12:59:45.578682+00:00",
-  "h5_requests": 2,
-  "h5_input": 26,
-  "h5_output": 4303,
+  "h5_requests": 26,
+  "h5_input": 674,
+  "h5_output": 66281,
   "today_key": "2026-07-26",
-  "today_requests": 2,
-  "today_input": 26,
-  "today_output": 4303,
+  "today_requests": 26,
+  "today_input": 674,
+  "today_output": 66281,
   "week_start": "2026-07-20T00:00:00+00:00",
   "week_reset": "2026-07-27T00:00:00+00:00",
-  "week_requests": 448,
-  "week_input": 1893,
-  "week_output": 463491,
-  "week_cache": 13801099,
-  "week_cost_usd": 27.535538600000013,
-  "last_request_at": "2026-07-26T13:12:53.782519+00:00",
+  "week_requests": 472,
+  "week_input": 2541,
+  "week_output": 525469,
+  "week_cache": 16704305,
+  "week_cost_usd": 31.053160400000017,
+  "last_request_at": "2026-07-26T14:21:12.518913+00:00",
   "session_start": "2026-07-20T03:42:35.526544+00:00",
   "apps": {
     "mcp-fetch": {
@@ -29,9 +29,14 @@
       "output": 122350
     },
     "signalforge-live-context": {
-      "requests": 309,
-      "input": 987,
-      "output": 77883
+      "requests": 324,
+      "input": 1551,
+      "output": 104471
+    },
+    "signalforge-robinhood": {
+      "requests": 9,
+      "input": 84,
+      "output": 35390
     }
   }
 }

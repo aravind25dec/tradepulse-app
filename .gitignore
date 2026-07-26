@@ -13,3 +13,5 @@ signalforge/narrator/gguf/
 signalforge/narrator/merged/
 signalforge/narrator/.llama_cpp/
 signalforge/narrator/*.log
+signalforge/favorites.json
+signalforge/predictions_cache.json

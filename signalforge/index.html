@@ -19,8 +19,9 @@
   header { background: var(--bg2); border-bottom: 1px solid var(--border); padding: 16px 24px; }
   .logo { font-size: 18px; font-weight: 700; }
   .logo-sub { font-size: 11px; color: var(--text2); margin-top: 2px; }
-  main { max-width: 720px; margin: 0 auto; padding: 24px; }
-  .search-row { display: flex; gap: 8px; margin-bottom: 20px; }
+  main { max-width: 1100px; margin: 0 auto; padding: 24px; }
+
+  .search-row { display: flex; gap: 8px; margin-bottom: 28px; }
   input[type=text] {
     flex: 1; background: var(--bg3); border: 1px solid var(--border); color: var(--text);
     padding: 10px 14px; border-radius: 6px; font-family: var(--font); font-size: 14px; text-transform: uppercase;
@@ -30,24 +31,60 @@
     border-radius: 6px; font-family: var(--font); font-weight: 700; cursor: pointer; font-size: 13px;
   }
   button:disabled { opacity: 0.5; cursor: not-allowed; }
-  .card {
-    background: var(--bg2); border: 1px solid var(--border); border-radius: 8px;
-    padding: 20px; margin-bottom: 16px;
+
+  .section { margin-bottom: 32px; }
+  .section-header { display: flex; align-items: center; justify-content: space-between; margin-bottom: 12px; }
+  .section-title { font-size: 13px; font-weight: 700; text-transform: uppercase; letter-spacing: 0.5px; color: var(--text2); }
+  .section-note { font-size: 11px; color: var(--text2); font-style: italic; }
+  .empty-note { font-size: 12px; color: var(--text2); padding: 16px; background: var(--bg2); border: 1px dashed var(--border); border-radius: 8px; }
+
+  .tile-grid { display: grid; grid-template-columns: repeat(auto-fill, minmax(220px, 1fr)); gap: 12px; }
+  .tile {
+    background: var(--bg2); border: 1px solid var(--border); border-radius: 8px; padding: 14px;
+    cursor: pointer; position: relative; transition: border-color .15s;
   }
-  .signal-row { display: flex; align-items: center; justify-content: space-between; margin-bottom: 12px; }
-  .signal { font-size: 22px; font-weight: 800; padding: 4px 14px; border-radius: 6px; }
-  .signal.BUY  { background: var(--green-dim); color: var(--green); }
-  .signal.SELL { background: var(--red-dim);   color: var(--red); }
-  .signal.HOLD { background: var(--yellow-dim);color: var(--yellow); }
-  .confidence { text-align: right; }
-  .confidence .pct { font-size: 20px; font-weight: 700; }
-  .confidence .label { font-size: 11px; color: var(--text2); }
+  .tile:hover { border-color: var(--blue); }
+  .tile.loading { opacity: 0.6; }
+  .tile-top { display: flex; align-items: flex-start; justify-content: space-between; margin-bottom: 8px; }
+  .tile-ticker { font-size: 15px; font-weight: 800; }
+  .tile-icons { display: flex; gap: 6px; }
+  .icon-btn {
+    background: none; border: none; color: var(--text2); font-size: 13px; cursor: pointer;
+    padding: 2px 4px; border-radius: 4px; line-height: 1;
+  }
+  .icon-btn:hover { color: var(--text); background: var(--bg3); }
+  .icon-btn:disabled { opacity: 0.4; cursor: not-allowed; }
+  .signal-badge { display: inline-block; font-size: 11px; font-weight: 800; padding: 2px 8px; border-radius: 4px; margin-bottom: 6px; }
+  .signal-badge.BUY  { background: var(--green-dim); color: var(--green); }
+  .signal-badge.SELL { background: var(--red-dim);   color: var(--red); }
+  .signal-badge.HOLD { background: var(--yellow-dim);color: var(--yellow); }
+  .tile-confidence { font-size: 11px; color: var(--text2); margin-bottom: 8px; }
+  .tile-highlights { font-size: 11px; color: var(--text2); line-height: 1.5; margin-bottom: 10px; min-height: 32px; }
+  .tile-footer { display: flex; align-items: center; justify-content: space-between; font-size: 10px; color: var(--text2); }
+  .holding-badge { font-size: 10px; color: var(--blue); margin-bottom: 6px; }
+
+  /* Modal */
+  .modal-backdrop {
+    display: none; position: fixed; inset: 0; background: rgba(0,0,0,0.6); z-index: 200;
+    align-items: center; justify-content: center; padding: 24px;
+  }
+  .modal-backdrop.open { display: flex; }
+  .modal {
+    background: var(--bg2); border: 1px solid var(--border); border-radius: 10px;
+    max-width: 640px; width: 100%; max-height: 85vh; overflow-y: auto; padding: 24px;
+  }
+  .modal-header { display: flex; align-items: center; justify-content: space-between; margin-bottom: 16px; }
+  .modal-header h2 { font-size: 18px; }
+  .modal-close { background: none; border: none; color: var(--text2); font-size: 20px; cursor: pointer; }
+  .modal-close:hover { color: var(--text); }
   .backtest-note {
     font-size: 11px; color: var(--text2); padding: 10px; background: var(--bg3);
     border-radius: 6px; margin-bottom: 14px; line-height: 1.5;
   }
-  .narrative { line-height: 1.6; margin-bottom: 14px; }
-  .section-title { font-size: 11px; text-transform: uppercase; color: var(--text2); margin-bottom: 8px; letter-spacing: 0.5px; }
+  .modal-section-title { font-size: 11px; text-transform: uppercase; color: var(--text2); margin: 16px 0 8px; letter-spacing: 0.5px; }
+  .modal-section-title:first-of-type { margin-top: 0; }
+  .narrative, .layman { line-height: 1.6; }
+  .layman { background: var(--bg3); padding: 12px; border-radius: 6px; }
   .feature-grid { display: grid; grid-template-columns: repeat(3, 1fr); gap: 8px; font-size: 12px; }
   .feature-grid div { background: var(--bg3); padding: 8px; border-radius: 4px; }
   .feature-grid .k { color: var(--text2); font-size: 10px; text-transform: uppercase; }
@@ -62,82 +99,316 @@
 </header>
 <main>
   <div class="search-row">
-    <input type="text" id="ticker" placeholder="TICKER (e.g. NVDA)" />
-    <button id="go">Predict</button>
+    <input type="text" id="ticker-input" placeholder="TICKER (e.g. NVDA) — adds to Favorites" />
+    <button id="search-btn">Predict</button>
   </div>
-  <div id="result"></div>
+
+  <div class="section">
+    <div class="section-header">
+      <div class="section-title">⭐ Favorites</div>
+    </div>
+    <div id="favorites-grid" class="tile-grid"></div>
+    <div id="favorites-empty" class="empty-note" style="display:none">
+      No favorites yet — search a ticker above to add one.
+    </div>
+  </div>
+
+  <div class="section">
+    <div class="section-header">
+      <div class="section-title">🏦 Robinhood Holdings</div>
+      <div class="section-note" id="robinhood-note"></div>
+    </div>
+    <div id="robinhood-grid" class="tile-grid"></div>
+  </div>
+
   <div class="disclaimer">
     Educational project. Not financial advice. Confidence and backtested-accuracy numbers come from
     real out-of-sample walk-forward backtests (see /api/models) — no accuracy figure here is ever hardcoded.
   </div>
 </main>
+
+<div class="modal-backdrop" id="modal-backdrop">
+  <div class="modal" id="modal"></div>
+</div>
+
 <script>
-const resultEl = document.getElementById('result');
-const tickerEl = document.getElementById('ticker');
-const goBtn = document.getElementById('go');
+// ── Shared client-side state ────────────────────────────────────────────────
+// predictionsByTicker is the single source of truth both the Favorites grid and
+// the Robinhood grid render from — a ticker present in both never triggers more
+// than one /api/predict call per page load, and a refresh from either grid
+// updates this shared object, so both renders reflect it (see renderAll()).
+let favorites = [];
+let robinhoodHoldings = [];           // [{ticker, total_quantity, accounts:[...]}]
+let predictionsByTicker = {};         // ticker -> prediction response (or 'loading' | 'error')
 
-function fmtPct(x) { return x == null ? 'n/a' : (x * 100).toFixed(0) + '%'; }
+const favGrid = document.getElementById('favorites-grid');
+const favEmpty = document.getElementById('favorites-empty');
+const rhGrid = document.getElementById('robinhood-grid');
+const rhNote = document.getElementById('robinhood-note');
+const tickerInput = document.getElementById('ticker-input');
+const searchBtn = document.getElementById('search-btn');
+const modalBackdrop = document.getElementById('modal-backdrop');
+const modal = document.getElementById('modal');
 
-async function runPredict() {
-  const ticker = tickerEl.value.trim().toUpperCase();
-  if (!ticker) return;
-  goBtn.disabled = true;
-  resultEl.innerHTML = '<div class="card">Running prediction — fetching data, scoring model, calling Claude Code CLI for live context…</div>';
+function fmtPct(x) { return (x === null || x === undefined) ? 'n/a' : (x * 100).toFixed(0) + '%'; }
+
+function timeAgo(iso) {
+  if (!iso) return 'never';
+  const diffMs = Date.now() - new Date(iso).getTime();
+  const mins = Math.floor(diffMs / 60000);
+  if (mins < 1) return 'just now';
+  if (mins < 60) return `${mins}m ago`;
+  const hrs = Math.floor(mins / 60);
+  if (hrs < 24) return `${hrs}h ago`;
+  return `${Math.floor(hrs / 24)}d ago`;
+}
+
+// ── API calls ────────────────────────────────────────────────────────────────
+
+async function apiGet(url) {
+  const resp = await fetch(url);
+  const data = await resp.json();
+  if (!resp.ok) throw new Error(data.error || `Request failed: ${url}`);
+  return data;
+}
+
+async function fetchFavorites() {
+  const data = await apiGet('/api/favorites');
+  favorites = data.favorites || [];
+}
+
+async function fetchRobinhood() {
+  // This call alone takes ~60s against a real multi-account portfolio (it's a
+  // Claude Code CLI call enumerating every account) — without a visible
+  // loading state, that minute of "nothing happening" reads as broken rather
+  // than working, which is exactly what got reported before this was added.
+  rhNote.textContent = 'Loading holdings from Robinhood (can take up to a minute)…';
   try {
-    const resp = await fetch(`/api/predict?ticker=${encodeURIComponent(ticker)}`);
-    const data = await resp.json();
-    if (!resp.ok) {
-      resultEl.innerHTML = `<div class="card error">${data.error || 'Prediction failed'}</div>`;
-      return;
-    }
-    render(data);
+    const data = await apiGet('/api/robinhood/positions');
+    robinhoodHoldings = data.positions || [];
+    rhNote.textContent = '';
   } catch (e) {
-    resultEl.innerHTML = `<div class="card error">${e}</div>`;
-  } finally {
-    goBtn.disabled = false;
+    robinhoodHoldings = [];
+    rhNote.textContent = e.message || 'Robinhood MCP not connected';
   }
 }
 
-function render(d) {
-  const bt = d.backtested_accuracy || {};
-  const feat = d.features || {};
-  const live = d.live_context || {};
-  resultEl.innerHTML = `
-    <div class="card">
-      <div class="signal-row">
-        <div class="signal ${d.signal}">${d.ticker} — ${d.signal}</div>
-        <div class="confidence">
-          <div class="pct">${fmtPct(d.confidence)}</div>
-          <div class="label">model confidence</div>
-        </div>
-      </div>
-      <div class="backtest-note">
-        Backtested overall accuracy: <b>${fmtPct(bt.overall)}</b> ·
-        Historical accuracy at this confidence level: <b>${fmtPct(bt.for_this_confidence_level)}</b>
-        (test window ${bt.test_date_range ? bt.test_date_range.join(' → ') : 'n/a'}) · model ${d.model_version || 'n/a'}
-      </div>
-      <div class="narrative">${d.narrative || ''}</div>
-      <div class="section-title">Live context (Claude Code CLI)</div>
-      <div class="feature-grid" style="margin-bottom:14px">
-        <div><div class="k">Sentiment</div>${live.sentiment || 'n/a'}</div>
-        <div><div class="k">Current price</div>${live.current_price ?? 'n/a'}</div>
-        <div><div class="k">Available</div>${live.available ? 'yes' : 'no'}</div>
-      </div>
-      <div class="section-title">Model features</div>
-      <div class="feature-grid">
-        <div><div class="k">RSI</div>${(feat.rsi ?? 0).toFixed(1)}</div>
-        <div><div class="k">vs SMA50</div>${((feat.price_to_sma50 ?? 0) * 100).toFixed(1)}%</div>
-        <div><div class="k">vs SMA200</div>${((feat.price_to_sma200 ?? 0) * 100).toFixed(1)}%</div>
-        <div><div class="k">MACD</div>${feat.macd_bullish ? 'bullish' : 'bearish'}</div>
-        <div><div class="k">Vol ratio</div>${(feat.vol_ratio ?? 0).toFixed(2)}x</div>
-        <div><div class="k">BB %</div>${((feat.bb_pct ?? 0) * 100).toFixed(0)}%</div>
-      </div>
-    </div>
-  `;
+async function ensurePredicted(ticker, forceRefresh = false) {
+  const existing = predictionsByTicker[ticker];
+  if (!forceRefresh && existing && existing !== 'loading' && !existing.error) {
+    return; // already have a real result (or it's mid-flight — 'loading' marker prevents a duplicate call)
+  }
+  predictionsByTicker[ticker] = 'loading';
+  renderAll();
+  try {
+    const url = `/api/predict?ticker=${encodeURIComponent(ticker)}${forceRefresh ? '&force_refresh=true' : ''}`;
+    const data = await apiGet(url);
+    predictionsByTicker[ticker] = data;
+  } catch (e) {
+    // Keep the real message (e.g. "not enough trading history yet") instead of
+    // a bare marker — some failures (like a too-new ticker) will never succeed
+    // no matter how many times the ↻ is clicked, and the tile should say so.
+    predictionsByTicker[ticker] = { error: true, message: e.message || 'Prediction failed.' };
+  }
+  renderAll();
 }
 
-goBtn.addEventListener('click', runPredict);
-tickerEl.addEventListener('keydown', e => { if (e.key === 'Enter') runPredict(); });
+// Each section loads and paints independently — Robinhood's ~60s account
+// enumeration must never block Favorites from appearing. Favorites is usually
+// near-instant: GET /api/favorites is a local file read, and every ticker's
+// prediction is served from storage.py's on-disk cache (from ANY previous
+// page load, not just this session) unless it's never been predicted before,
+// so a reload repaints last time's results immediately rather than showing
+// "Loading…" placeholders while re-fetching everything from scratch.
+async function loadFavoritesSection() {
+  await fetchFavorites();
+  renderAll();
+  await Promise.all(favorites.map(t => ensurePredicted(t)));
+}
+
+async function loadRobinhoodSection() {
+  await fetchRobinhood();
+  renderAll();
+  await Promise.all(robinhoodHoldings.map(h => ensurePredicted(h.ticker)));
+}
+
+async function loadAll() {
+  await Promise.all([loadFavoritesSection(), loadRobinhoodSection()]);
+}
+
+// ── Actions ──────────────────────────────────────────────────────────────────
+
+async function searchAndAdd() {
+  const ticker = tickerInput.value.trim().toUpperCase();
+  if (!ticker) return;
+  searchBtn.disabled = true;
+  try {
+    const resp = await fetch(`/api/favorites/${encodeURIComponent(ticker)}`, { method: 'POST' });
+    const data = await resp.json();
+    if (resp.ok) favorites = data.favorites;
+    tickerInput.value = '';
+    renderAll();
+    await ensurePredicted(ticker);
+  } finally {
+    searchBtn.disabled = false;
+  }
+}
+
+async function removeFavorite(ticker, evt) {
+  evt.stopPropagation();
+  const resp = await fetch(`/api/favorites/${encodeURIComponent(ticker)}`, { method: 'DELETE' });
+  const data = await resp.json();
+  if (resp.ok) favorites = data.favorites;
+  renderAll();
+}
+
+async function refreshTicker(ticker, evt) {
+  evt.stopPropagation();
+  await ensurePredicted(ticker, true);
+}
+
+// ── Rendering ────────────────────────────────────────────────────────────────
+
+function tileHighlights(data) {
+  if (!data.features) return '';
+  const f = data.features;
+  const macd = f.macd_bullish ? 'MACD bullish' : 'MACD bearish';
+  return `RSI ${f.rsi.toFixed(0)} · ${macd} · Vol ${f.vol_ratio.toFixed(2)}x`;
+}
+
+function renderTile(ticker, opts) {
+  const data = predictionsByTicker[ticker];
+  const div = document.createElement('div');
+
+  if (data === 'loading' || data === undefined) {
+    div.className = 'tile loading';
+    div.innerHTML = `<div class="tile-top"><div class="tile-ticker">${ticker}</div></div><div class="tile-highlights">Loading prediction…</div>`;
+    return div;
+  }
+  if (data && data.error) {
+    div.className = 'tile';
+    div.innerHTML = `
+      <div class="tile-top"><div class="tile-ticker">${ticker}</div></div>
+      <div class="tile-highlights" style="color:var(--red)">${data.message}</div>
+      <div class="tile-footer"><span></span></div>
+    `;
+    const icons = document.createElement('div');
+    icons.className = 'tile-icons';
+    const refreshBtn = document.createElement('button');
+    refreshBtn.className = 'icon-btn';
+    refreshBtn.title = 'Retry';
+    refreshBtn.textContent = '↻';
+    refreshBtn.addEventListener('click', (e) => refreshTicker(ticker, e));
+    icons.appendChild(refreshBtn);
+    if (opts.removable) {
+      const xBtn = document.createElement('button');
+      xBtn.className = 'icon-btn';
+      xBtn.title = 'Remove from favorites';
+      xBtn.textContent = '✕';
+      xBtn.addEventListener('click', (e) => removeFavorite(ticker, e));
+      icons.appendChild(xBtn);
+    }
+    div.querySelector('.tile-top').appendChild(icons);
+    return div;
+  }
+
+  div.className = 'tile';
+  const icons = document.createElement('div');
+  icons.className = 'tile-icons';
+
+  const refreshBtn = document.createElement('button');
+  refreshBtn.className = 'icon-btn';
+  refreshBtn.title = 'Refresh prediction';
+  refreshBtn.textContent = '↻';
+  refreshBtn.addEventListener('click', (e) => refreshTicker(ticker, e));
+  icons.appendChild(refreshBtn);
+
+  if (opts.removable) {
+    const xBtn = document.createElement('button');
+    xBtn.className = 'icon-btn';
+    xBtn.title = 'Remove from favorites';
+    xBtn.textContent = '✕';
+    xBtn.addEventListener('click', (e) => removeFavorite(ticker, e));
+    icons.appendChild(xBtn);
+  }
+
+  div.innerHTML = `
+    <div class="tile-top">
+      <div class="tile-ticker">${ticker}</div>
+    </div>
+    ${opts.holdingInfo ? `<div class="holding-badge">${opts.holdingInfo.total_quantity.toFixed(2)} shares held</div>` : ''}
+    <div class="signal-badge ${data.signal}">${data.signal}</div>
+    <div class="tile-confidence">${fmtPct(data.confidence)} confidence · backtested ${fmtPct(data.backtested_accuracy.for_this_confidence_level)} accurate at this level</div>
+    <div class="tile-highlights">${tileHighlights(data)}</div>
+    <div class="tile-footer"><span>Updated ${timeAgo(data.cached_at)}</span></div>
+  `;
+  div.querySelector('.tile-top').appendChild(icons);
+  div.addEventListener('click', () => openModal(ticker));
+  return div;
+}
+
+function renderAll() {
+  favGrid.innerHTML = '';
+  favorites.forEach(t => favGrid.appendChild(renderTile(t, { removable: true })));
+  favEmpty.style.display = favorites.length === 0 ? 'block' : 'none';
+
+  rhGrid.innerHTML = '';
+  robinhoodHoldings.forEach(h => rhGrid.appendChild(renderTile(h.ticker, { removable: false, holdingInfo: h })));
+}
+
+function openModal(ticker) {
+  const data = predictionsByTicker[ticker];
+  if (!data || data === 'loading' || data === 'error') return;
+  const live = data.live_context || {};
+  const feat = data.features || {};
+  const bt = data.backtested_accuracy || {};
+
+  modal.innerHTML = `
+    <div class="modal-header">
+      <h2>${ticker} — <span style="color:var(--text2)">${data.signal}</span></h2>
+      <button class="modal-close" id="modal-close-btn">&times;</button>
+    </div>
+    <div class="backtest-note">
+      Model confidence: <b>${fmtPct(data.confidence)}</b> · Backtested overall accuracy: <b>${fmtPct(bt.overall)}</b> ·
+      Historical accuracy at this confidence level: <b>${fmtPct(bt.for_this_confidence_level)}</b>
+      (test window ${bt.test_date_range ? bt.test_date_range.join(' → ') : 'n/a'}) · model ${data.model_version || 'n/a'}
+      · updated ${timeAgo(data.cached_at)}
+    </div>
+
+    <div class="modal-section-title">Analyst explanation</div>
+    <div class="narrative">${data.narrative || ''}</div>
+
+    <div class="modal-section-title">In plain terms</div>
+    <div class="layman">${data.layman_explanation || ''}</div>
+
+    <div class="modal-section-title">Live context (Claude Code CLI)</div>
+    <div class="feature-grid" style="margin-bottom:14px">
+      <div><div class="k">Sentiment</div>${live.sentiment || 'n/a'}</div>
+      <div><div class="k">Current price</div>${live.current_price ?? 'n/a'}</div>
+      <div><div class="k">Available</div>${live.available ? 'yes' : 'no'}</div>
+    </div>
+
+    <div class="modal-section-title">Model features</div>
+    <div class="feature-grid">
+      <div><div class="k">RSI</div>${(feat.rsi ?? 0).toFixed(1)}</div>
+      <div><div class="k">vs SMA50</div>${((feat.price_to_sma50 ?? 0) * 100).toFixed(1)}%</div>
+      <div><div class="k">vs SMA200</div>${((feat.price_to_sma200 ?? 0) * 100).toFixed(1)}%</div>
+      <div><div class="k">MACD</div>${feat.macd_bullish ? 'bullish' : 'bearish'}</div>
+      <div><div class="k">Vol ratio</div>${(feat.vol_ratio ?? 0).toFixed(2)}x</div>
+      <div><div class="k">BB %</div>${((feat.bb_pct ?? 0) * 100).toFixed(0)}%</div>
+    </div>
+  `;
+  document.getElementById('modal-close-btn').addEventListener('click', closeModal);
+  modalBackdrop.classList.add('open');
+}
+
+function closeModal() { modalBackdrop.classList.remove('open'); }
+modalBackdrop.addEventListener('click', (e) => { if (e.target === modalBackdrop) closeModal(); });
+
+searchBtn.addEventListener('click', searchAndAdd);
+tickerInput.addEventListener('keydown', e => { if (e.key === 'Enter') searchAndAdd(); });
+
+loadAll();
 </script>
 </body>
 </html>

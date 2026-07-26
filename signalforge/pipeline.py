@@ -64,7 +64,17 @@ def fetch_ohlcv(state: PredictState) -> dict:
     ticker = state["ticker"]
     df = _fetch_history_yf(ticker, period=_OHLCV_PERIOD)
     if df is None or df.empty:
-        raise ValueError(f"Could not fetch OHLCV history for '{ticker}' — check the symbol.")
+        # autotrader.engine.fetch_history() returns None both for an invalid/delisted
+        # symbol AND for a real, valid ticker that just doesn't have 200+ trading days
+        # yet (recent IPO) — it needs that much history for the 200-day SMA feature.
+        # It doesn't expose which case applies, so the message covers both rather
+        # than misleadingly suggesting the symbol itself is wrong.
+        raise ValueError(
+            f"Could not fetch enough OHLCV history for '{ticker}'. Either the symbol is "
+            f"wrong/delisted, or it's a real but recently-listed ticker that doesn't have "
+            f"the 200+ trading days this model's features require yet — that won't change "
+            f"no matter how many times you refresh."
+        )
     return {"ohlcv": df}
 
 
@@ -185,11 +195,50 @@ async def narrate_node(state: PredictState) -> dict:
     return {"narrative": narrated or mechanical}
 
 
+def _layman_explanation(ticker: str, model_output: dict, features: dict) -> str:
+    """Plain-English companion to the analyst narrative — deliberately rule-based
+    rather than a second LLM round-trip, so it's instant, free, and available even
+    when Ollama/the narrator is down (same resilience principle as the mechanical
+    narrative fallback)."""
+    signal = model_output["signal"]
+    conf_pct = model_output["confidence"] * 100
+    bucket_acc = model_output["backtested_accuracy"].get("for_this_confidence_level")
+
+    if signal == "BUY":
+        lean = f"leans toward thinking {ticker} is more likely to go UP"
+    elif signal == "SELL":
+        lean = f"leans toward thinking {ticker} is more likely to go DOWN"
+    else:
+        lean = f"doesn't see a strong signal either way for {ticker} right now — it's a coin-flip zone"
+
+    above_200 = features["price_to_sma200"] > 0
+    trend_word = "above" if above_200 else "below"
+    trend_read = "a positive sign for the medium-term trend" if above_200 else "a warning sign for the medium-term trend"
+
+    parts = [
+        f"In plain terms: the model {lean}, at about {conf_pct:.0f}% confidence.",
+        "Think of that confidence like a weather forecast — it's not a guarantee, just how strongly the model leans.",
+    ]
+    if bucket_acc is not None:
+        parts.append(
+            f"In the past, when the model was this confident, it turned out to be right about "
+            f"{bucket_acc * 100:.0f}% of the time — worth keeping in mind before acting on this."
+        )
+    else:
+        parts.append("There isn't enough backtesting history yet at this exact confidence level to say how reliable calls like this one have been.")
+    parts.append(
+        f"One thing behind the call: the stock is currently trading {trend_word} its long-term "
+        f"(200-day) average price, which many traders read as {trend_read}."
+    )
+    return " ".join(parts)
+
+
 def assemble_response_node(state: PredictState) -> dict:
     response = {
         "ticker": state["ticker"],
         **state["model_output"],
         "narrative": state["narrative"],
+        "layman_explanation": _layman_explanation(state["ticker"], state["model_output"], state["features"]),
         "live_context": state["live_context"],
         "features": state["features"],
     }
